@@ -30,7 +30,7 @@ function getCompatibilityMessage(compatibility) {
         15: "L'univers dit... peut-être pas ",
         5: "Même pas dans une autre dimension "
     }
-    
+
     const keys = Object.keys(messages).map(Number).sort((a, b) => b - a)
     for (const key of keys) {
         if (compatibility >= key) return messages[key]
@@ -50,7 +50,7 @@ function getLoveLevel(potential) {
         20: { emoji: "", message: "Prudent !", description: "Tu protèges ton cœur avec soin !" },
         10: { emoji: "", message: "Méfiant !", description: "L'amour te fait peur, mais ça va changer !" }
     }
-    
+
     const keys = Object.keys(levels).map(Number).sort((a, b) => b - a)
     for (const key of keys) {
         if (potential >= key) return levels[key]
@@ -76,18 +76,19 @@ async function startBot() {
         const { connection, qr, lastDisconnect } = update
 
         if (qr) {
-            console.log("")
+            console.clear()
+            console.log("📲 Scanne ce QR code avec WhatsApp :\n")
             qrcode.generate(qr, { small: true })
         }
 
         if (connection === "open") {
-            console.log("")
+            console.log(" Bot connecté avec succès !")
         }
 
         if (connection === "close") {
 
             const code = lastDisconnect?.error?.output?.statusCode
-            console.log("", code)
+            console.log(" Connexion fermée. Code :", code)
 
             if (code !== 401) {
                 startBot()
@@ -103,10 +104,6 @@ async function startBot() {
         const jid = msg.key.remoteJid
         if (!jid) return
 
-        // Accepter tous les messages (vous pouvez filtrer par numéro plus tard si besoin)
-        // if (!msg.key.fromMe) return
-
-        // enregistrer groupes
         if (jid.endsWith("@g.us")) {
             const groups = loadGroups()
             if (!groups.includes(jid)) {
@@ -115,7 +112,6 @@ async function startBot() {
             }
         }
 
-        // récupérer texte
         const message = msg.message
 
         let text =
@@ -128,8 +124,6 @@ async function startBot() {
         text = text.trim()
 
         if (!text) return
-
-        // Plus d'affichage des messages dans le terminal
 
         // ====================
         // COMMANDES
@@ -157,54 +151,44 @@ async function startBot() {
                 }, { quoted: msg })
 
             } catch (err) {
-                console.log("", err)
+                console.log(err)
             }
         }
 
-        // Commande !ship - Calcule la compatibilité amoureuse
         if (text.startsWith("!ship ")) {
             const mentionedJids = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []
-            
+
             if (mentionedJids.length < 2) {
-                await sock.sendMessage(jid, { 
-                    text: " Usage: !ship @user1 @user2\nTagguez deux personnes pour calculer leur compatibilité !" 
+                await sock.sendMessage(jid, {
+                    text: " Usage: !ship @user1 @user2\nTagguez deux personnes pour calculer leur compatibilité !"
                 }, { quoted: msg })
                 return
             }
 
             const user1 = mentionedJids[0].split("@")[0]
             const user2 = mentionedJids[1].split("@")[0]
-            
-            // Calcul de compatibilité avec vraie probabilité
+
             const seed = user1.length + user2.length + new Date().getDay()
-            const compatibility = Math.floor((Math.sin(seed) + 1) * 50) // 0-100%
-            
-            // Messages selon le niveau de compatibilité
-            let message = ""
+            const compatibility = Math.floor((Math.sin(seed) + 1) * 50)
+
             let emoji = ""
             let description = ""
-            
+
             if (compatibility >= 90) {
-                emoji = ""
                 description = "ÂMES SŒURS ! Un amour éternel !"
             } else if (compatibility >= 75) {
-                emoji = ""
                 description = "Très grande compatibilité !"
             } else if (compatibility >= 60) {
-                emoji = ""
                 description = "Bonne compatibilité !"
             } else if (compatibility >= 40) {
-                emoji = ""
                 description = "Compatibilité moyenne..."
             } else if (compatibility >= 25) {
-                emoji = ""
                 description = "Faible compatibilité..."
             } else {
-                emoji = ""
                 description = "Très faible compatibilité !"
             }
 
-            message = `╭───〔  CALCUL D'AMOUR 〕───⬣
+            const message = `╭───〔  CALCUL D'AMOUR 〕───⬣
 │◦❒ @${user1}  @${user2}
 │◦❒ Compatibilité: ${compatibility}%
 │◦❒ ${emoji}
@@ -219,30 +203,29 @@ async function startBot() {
             }, { quoted: msg })
         }
 
-        // Commande !love - Test d'amour pour une seule personne
         if (text.startsWith("!love ")) {
             const mentionedJids = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []
-            
+
             if (mentionedJids.length < 1) {
-                await sock.sendMessage(jid, { 
-                    text: " Usage: !love @user\nTagguez une personne pour calculer son potentiel d'amour !" 
+                await sock.sendMessage(jid, {
+                    text: " Usage: !love @user\nTagguez une personne pour calculer son potentiel d'amour !"
                 }, { quoted: msg })
                 return
             }
 
             const user = mentionedJids[0].split("@")[0]
-            
-            // Calcul basé sur des facteurs "réels"
+
             const factors = [
                 user.length * 3,
                 user.charCodeAt(0) || 0,
                 new Date().getHours(),
                 Math.floor(Math.random() * 20)
             ]
+
             const lovePotential = Math.min(99, Math.floor(factors.reduce((a, b) => a + b, 0) % 100))
-            
+
             const loveLevel = getLoveLevel(lovePotential)
-            
+
             const message = `╭───〔  POTENTIEL D'AMOUR 〕───⬣
 │◦❒ @${user}
 │◦❒ Potentiel d'amour: ${lovePotential}%
@@ -258,7 +241,6 @@ async function startBot() {
             }, { quoted: msg })
         }
 
-        // Commande !help - Affiche toutes les commandes
         if (text === "!help") {
             const helpMessage = `╭───〔  COMMANDES DU BOT 〕───⬣
 │◦❒ !tagall - Tag tous les membres du groupe
