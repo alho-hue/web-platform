@@ -19,16 +19,16 @@ function saveGroups(list) {
 // Fonctions utilitaires pour les calculs de compatibilité
 function getCompatibilityMessage(compatibility) {
     const messages = {
-        95: "Le destin vous a réunis ! C'est écrit dans les étoiles ",
-        85: "Une étincelle magique flotte entre vous ",
-        75: "Les planètes s'alignent pour votre amour ",
-        65: "Une belle histoire d'amour possible ",
-        55: "Avec un peu d'effort, ça pourrait marcher ",
-        45: "L'amour est mystérieux, qui sait ? ",
-        35: "Peut-être que l'amitié est plus adaptée ",
-        25: "Les chemins de l'amour sont compliqués ",
-        15: "L'univers dit... peut-être pas ",
-        5: "Même pas dans une autre dimension "
+        95: "Le destin vous a réunis ! C'est écrit dans les étoiles ❤️",
+        85: "Une étincelle magique flotte entre vous ✨",
+        75: "Les planètes s'alignent pour votre amour 🌟",
+        65: "Une belle histoire d'amour possible 💕",
+        55: "Avec un peu d'effort, ça pourrait marcher 💪",
+        45: "L'amour est mystérieux, qui sait ? 🤔",
+        35: "Peut-être que l'amitié est plus adaptée 👫",
+        25: "Les chemins de l'amour sont compliqués 🌪️",
+        15: "L'univers dit... peut-être pas 🌍",
+        5: "Même pas dans une autre dimension 🌌"
     }
 
     const keys = Object.keys(messages).map(Number).sort((a, b) => b - a)
@@ -40,15 +40,15 @@ function getCompatibilityMessage(compatibility) {
 
 function getLoveLevel(potential) {
     const levels = {
-        90: { emoji: "", message: "Amour divin !", description: "Tu es un être d'amour pur !" },
-        80: { emoji: "", message: "Cœur d'or !", description: "Ton potentiel d'amour est immense !" },
-        70: { emoji: "", message: "Romantique !", description: "L'amour est ta seconde nature !" },
-        60: { emoji: "", message: "Passionné !", description: "Tu as beaucoup d'amour à donner !" },
-        50: { emoji: "", message: "Équilibré !", description: "Tu trouves le bon équilibre en amour !" },
-        40: { emoji: "", message: "Gentil !", description: "Tu as un beau cœur !" },
-        30: { emoji: "", message: "Timide !", description: "L'amour te rend parfois timide !" },
-        20: { emoji: "", message: "Prudent !", description: "Tu protèges ton cœur avec soin !" },
-        10: { emoji: "", message: "Méfiant !", description: "L'amour te fait peur, mais ça va changer !" }
+        90: { emoji: "🌟", message: "Amour divin !", description: "Tu es un être d'amour pur !" },
+        80: { emoji: "💫", message: "Cœur d'or !", description: "Ton potentiel d'amour est immense !" },
+        70: { emoji: "💝", message: "Romantique !", description: "L'amour est ta seconde nature !" },
+        60: { emoji: "💖", message: "Passionné !", description: "Tu as beaucoup d'amour à donner !" },
+        50: { emoji: "💗", message: "Équilibré !", description: "Tu trouves le bon équilibre en amour !" },
+        40: { emoji: "💓", message: "Gentil !", description: "Tu as un beau cœur !" },
+        30: { emoji: "💔", message: "Timide !", description: "L'amour te rend parfois timide !" },
+        20: { emoji: "🛡️", message: "Prudent !", description: "Tu protèges ton cœur avec soin !" },
+        10: { emoji: "😨", message: "Méfiant !", description: "L'amour te fait peur, mais ça va changer !" }
     }
 
     const keys = Object.keys(levels).map(Number).sort((a, b) => b - a)
@@ -82,13 +82,13 @@ async function startBot() {
         }
 
         if (connection === "open") {
-            console.log(" Bot connecté avec succès !")
+            console.log("✅ Bot connecté avec succès !")
         }
 
         if (connection === "close") {
 
             const code = lastDisconnect?.error?.output?.statusCode
-            console.log(" Connexion fermée. Code :", code)
+            console.log("❌ Connexion fermée. Code :", code)
 
             if (code !== 401) {
                 startBot()
@@ -137,13 +137,11 @@ async function startBot() {
                 const participants = metadata.participants
                 const mentions = participants.map(p => p.id)
 
-                let textMessage = "╔════════════════════════════╗\n"
-                textMessage += "║     📢 TAG ALL - MENTION     ║\n"
-                textMessage += "╠════════════════════════════╣\n"
+                let textMessage = "╭─────〔 TAG ALL 〕─────⬣\n"
                 mentions.forEach(id => {
-                    textMessage += `║  👤 @${id.split("@")[0]}\n`
+                    textMessage += `│◦❒ 👤 @${id.split("@")[0]}\n`
                 })
-                textMessage += "╚════════════════════════════╝"
+                textMessage += "╰══════════════════════⬣"
 
                 await sock.sendMessage(jid, {
                     text: textMessage,
@@ -160,7 +158,7 @@ async function startBot() {
 
             if (mentionedJids.length < 2) {
                 await sock.sendMessage(jid, {
-                    text: " Usage: !ship @user1 @user2\nTagguez deux personnes pour calculer leur compatibilité !"
+                    text: "❌ Usage: !ship @user1 @user2\nTagguez deux personnes pour calculer leur compatibilité !"
                 }, { quoted: msg })
                 return
             }
@@ -175,27 +173,32 @@ async function startBot() {
             let description = ""
 
             if (compatibility >= 90) {
+                emoji = "🔥"
                 description = "ÂMES SŒURS ! Un amour éternel !"
             } else if (compatibility >= 75) {
+                emoji = "💕"
                 description = "Très grande compatibilité !"
             } else if (compatibility >= 60) {
+                emoji = "💑"
                 description = "Bonne compatibilité !"
             } else if (compatibility >= 40) {
+                emoji = "🤝"
                 description = "Compatibilité moyenne..."
             } else if (compatibility >= 25) {
+                emoji = "😕"
                 description = "Faible compatibilité..."
             } else {
+                emoji = "💔"
                 description = "Très faible compatibilité !"
             }
 
-            const message = `╭───〔  CALCUL D'AMOUR 〕───⬣
+            const message = `╭───〔  💘 CALCUL D'AMOUR 〕───⬣
 │◦❒ @${user1}  @${user2}
 │◦❒ Compatibilité: ${compatibility}%
-│◦❒ ${emoji}
-│◦❒ ${description}
+│◦❒ ${emoji} ${description}
 │◦❒ 
 │◦❒ ${getCompatibilityMessage(compatibility)}
-╰═══════════════════════════⬣`
+╰════════════════════════⬣`
 
             await sock.sendMessage(jid, {
                 text: message,
@@ -208,7 +211,7 @@ async function startBot() {
 
             if (mentionedJids.length < 1) {
                 await sock.sendMessage(jid, {
-                    text: " Usage: !love @user\nTagguez une personne pour calculer son potentiel d'amour !"
+                    text: "❌ Usage: !love @user\nTagguez une personne pour calculer son potentiel d'amour !"
                 }, { quoted: msg })
                 return
             }
@@ -226,14 +229,13 @@ async function startBot() {
 
             const loveLevel = getLoveLevel(lovePotential)
 
-            const message = `╭───〔  POTENTIEL D'AMOUR 〕───⬣
+            const message = `╭───〔  💝 POTENTIEL D'AMOUR 〕───⬣
 │◦❒ @${user}
 │◦❒ Potentiel d'amour: ${lovePotential}%
-│◦❒ ${loveLevel.emoji}
-│◦❒ ${loveLevel.message}
+│◦❒ ${loveLevel.emoji} ${loveLevel.message}
 │◦❒ 
 │◦❒ ${loveLevel.description}
-╰═══════════════════════════⬣`
+╰════════════════════════⬣`
 
             await sock.sendMessage(jid, {
                 text: message,
@@ -242,12 +244,12 @@ async function startBot() {
         }
 
         if (text === "!help") {
-            const helpMessage = `╭───〔  COMMANDES DU BOT 〕───⬣
+            const helpMessage = `╭───〔  📚 COMMANDES DU BOT 〕───⬣
 │◦❒ !tagall - Tag tous les membres du groupe
 │◦❒ !ship @user1 @user2 - Calcule la compatibilité amoureuse
 │◦❒ !love @user - Calcule le potentiel d'amour
 │◦❒ !help - Affiche ce menu
-╰═══════════════════════════⬣`
+╰════════════════════════⬣`
 
             await sock.sendMessage(jid, { text: helpMessage }, { quoted: msg })
         }
