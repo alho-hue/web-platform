@@ -18,6 +18,8 @@ const activeGames = new Map() // Jeux en cours
 const scores = new Map() // Scores des joueurs: { user_jid: { total: number, games: number } }
 let messageCounts = {} // { group_jid: { user_jid: number } }
 let userProfiles = {} // { user_jid: { messages: number, level: number, xp: number, warns: number } }
+const gameTimers = new Map() // Chronomètres pour les jeux
+const usedQuestions = new Map() // Questions déjà utilisées: { group_jid: { country: [], vraioufaux: [], capitale: [], devine: [] } }
 
 // Base de données des pays pour le jeu
 const countries = [
@@ -61,7 +63,6 @@ const countries = [
     { name: "Chili", capitale: "Santiago", indice: "Pays le plus long du monde", continent: "Amérique du Sud" },
     { name: "Colombie", capitale: "Bogota", indice: "Pays du café et des émeraudes", continent: "Amérique du Sud" },
     { name: "Venezuela", capitale: "Caracas", indice: "Pays du pétrole et des plages", continent: "Amérique du Sud" },
-    { name: "Argentine", capitale: "Buenos Aires", indice: "Pays du tango et du Messi", continent: "Amérique du Sud" },
     { name: "Uruguay", capitale: "Montevideo", indice: "Pays du football et du maté", continent: "Amérique du Sud" },
     { name: "Cuba", capitale: "La Havane", indice: "Pays des cigares et des voitures anciennes", continent: "Amérique du Nord" },
     { name: "Jamaïque", capitale: "Kingston", indice: "Pays du reggae et d'Usain Bolt", continent: "Amérique du Nord" },
@@ -218,14 +219,38 @@ const trueFalseQuestions = [
     { question: "Les têtards peuvent régénérer leurs membres", answer: false, explanation: "Seulement la queue et les pattes arrière !" },
     { question: "Les baleines chantent des chansons", answer: true, explanation: "Correct !" },
     { question: "Les dauphins ont des noms", answer: true, explanation: "Correct !" },
-    { question: " les corbeaux font des outils", answer: true, explanation: "Correct !" },
+    { question: "Les corbeaux font des outils", answer: true, explanation: "Correct !" },
     { question: "Les hiboux voient en 3D", answer: true, explanation: "Correct !" },
     { question: "Les écureuils plantent des arbres", answer: false, explanation: "Ils oublient où ils ont planté !" },
     { question: "Les flamants roses mâles couvent les œufs", answer: true, explanation: "Correct !" },
-    { question: " Les pandas sont des ours", answer: false, explanation: "Ce sont des pandas géants !" },
+    { question: "Les pandas sont des ours", answer: false, explanation: "Ce sont des pandas géants !" },
     { question: "Les chevaux ne peuvent pas vomir", answer: true, explanation: "Correct !" },
     { question: "Les éléphants ont une excellente mémoire", answer: true, explanation: "Correct !" },
-    { question: "Les girafes ont le cou le plus long", answer: true, explanation: "Correct !" }
+    { question: "Les girafes ont le cou le plus long", answer: true, explanation: "Correct !" },
+    
+    // Questions sur la technologie et l'histoire
+    { question: "Le premier ordinateur était plus petit qu'un smartphone", answer: false, explanation: "Il occupait une pièce entière !" },
+    { question: "Internet a été inventé dans les années 1990", answer: false, explanation: "Le protocole date des années 1960-1970 !" },
+    { question: "Albert Einstein a échoué à l'école", answer: false, explanation: "C'était un excellent élève !" },
+    { question: "Napoléon était très petit", answer: false, explanation: "Il mesurait 1m68, normal pour l'époque !" },
+    { question: "Les Vikings portaient des casques avec des cornes", answer: false, explanation: "C'est un mythe popularisé par les opéras !" },
+    { question: "Le grand incendie de Londres a détruit toute la ville", answer: false, explanation: "Seulement 80% de la ville a brûlé !" },
+    { question: "Christophe Colomb a découvert l'Amérique", answer: false, explanation: "Elle était déjà peuplée depuis des millénaires !" },
+    { question: "Les pyramides ont été construites par des esclaves", answer: false, explanation: "C'étaient des travailleurs qualifiés !" },
+    { question: "Le Titanic a coulé en 10 minutes", answer: false, explanation: "Il a mis 2h40 à couler !" },
+    { question: "Le premier film parlant date de 1920", answer: true, explanation: "Correct !" },
+    
+    // Questions sur la science et la nature
+    { question: "Le diamant vient du carbone compressé", answer: true, explanation: "Correct !" },
+    { question: "Les volcans peuvent créer des îles", answer: true, explanation: "Correct !" },
+    { question: "La lumière du soleil met 8 minutes pour nous atteindre", answer: true, explanation: "Correct !" },
+    { question: "Les humains partagent 50% d'ADN avec les bananes", answer: true, explanation: "Correct !" },
+    { question: "Le miel ne périt jamais", answer: true, explanation: "Correct !" },
+    { question: "Les étoiles peuvent exploser", answer: true, explanation: "Ce sont les supernovas !" },
+    { question: "L'eau peut bouillir à moins de 100°C", answer: true, explanation: "En altitude, oui !" },
+    { question: "Le son ne voyage pas dans le vide", answer: true, explanation: "Correct !" },
+    { question: "Les champignons sont plus proches des animaux que des plantes", answer: true, explanation: "Correct !" },
+    { question: "Le cœur d'une baleine est assez gros pour qu'un humain nage dedans", answer: true, explanation: "Correct !" }
 ]
 
 // Sujets de débat
@@ -258,6 +283,103 @@ const debateTopics = [
     "Faut-il réguler les deepfakes et les fake news ?",
     "Les smartphones devraient-ils avoir une batterie amovible ?",
     "Le cloud gaming est-il l'avenir du jeu vidéo ?",
+    
+    // Sujets société et politique
+    "Faut-il abaisser l'âge de vote à 16 ans ?",
+    "Le service militaire devrait-il être obligatoire ?",
+    "Faut-il légaliser le cannabis dans tous les pays ?",
+    "La peine de mort est-elle une solution efficace ?",
+    "Faut-il interdire les fourrures animales ?",
+    "Le revenu universel est-il une bonne idée ?",
+    "Faut-il taxer les grandes entreprises technologiques ?",
+    "L'euthanasie devrait-elle être légale partout ?",
+    "Faut-il interdire les publicités pour enfants ?",
+    "Le mariage gay devrait-il être universel ?",
+    
+    // Sujets technologie et science
+    "Les humains pourront-ils vivre sur Mars d'ici 2050 ?",
+    "Le transhumanisme est-il l'avenir de l'humanité ?",
+    "Faut-il développer l'énergie nucléaire ?",
+    "Les OGM sont-ils dangereux pour la santé ?",
+    "Faut-il réguler l'IA avant qu'il ne soit trop tard ?",
+    "Les robots auront-ils des droits ?",
+    "Faut-il interdire les armes autonomes ?",
+    "Le clonage humain est-il éthique ?",
+    "Faut-il explorer les fonds marins avant l'espace ?",
+    "Les nanotechnologies sont-elles dangereuses ?",
+    
+    // Sujets environnement
+    "Faut-il interdire les plastiques à usage unique ?",
+    "Le changement climatique est-il réversible ?",
+    "Faut-il manger moins de viande pour la planète ?",
+    "Les éoliennes sont-elles vraiment écologiques ?",
+    "Faut-taxer les vols long-courriers ?",
+    "Le recyclage est-il efficace ?",
+    "Faut-il interdire les voitures thermiques avant 2035 ?",
+    "L'agriculture biologique peut-elle nourrir le monde ?",
+    "Faut-il reboiser massivement la planète ?",
+    "Les surcharges océaniques sont-elles une menace ?",
+    
+    // Sujets éducation et travail
+    "L'école à vie est-elle nécessaire ?",
+    "Faut-il supprimer les notes à l'école ?",
+    "Les diplômes sont-ils encore pertinents ?",
+    "Faut-il autoriser le travail des enfants ?",
+    "Le burnout est-il une maladie moderne ?",
+    "Faut-il interdire le travail le week-end ?",
+    "Les stages non payés sont-ils de l'exploitation ?",
+    "Faut-il réduire le temps de travail à 32h ?",
+    "Le télétravail favorise-t-il l'isolement ?",
+    "Les grèves sont-elles encore efficaces ?",
+    
+    // Sujets culture et divertissement
+    "La musique moderne est-elle moins bonne qu'avant ?",
+    "Les films Marvel sont-ils du vrai cinéma ?",
+    "Faut-il protéger le patrimoine culturel ?",
+    "Les influenceurs sont-ils dangereux pour la jeunesse ?",
+    "Le rap est-il de la vraie musique ?",
+    "Faut-il subventionner les artistes ?",
+    "Les jeux vidéo sont-ils addictifs ?",
+    "Le sport professionnel est-il trop commercial ?",
+    "La mode rapide est-elle éthique ?",
+    "Faut-il limiter le temps d'écran pour enfants ?",
+    
+    // Sujets santé et bien-être
+    "Faut-il rendre les médicaments gratuits ?",
+    "La médecine alternative est-elle efficace ?",
+    "Faut-il interdire le sucre dans les aliments ?",
+    "Le jeûne intermittent est-il bon pour la santé ?",
+    "Faut-il légaliser l'euthanasie pour animaux ?",
+    "Les vaccins sont-ils sûrs à long terme ?",
+    "Faut-il interdire les cigarettes ?",
+    "Le cannabis médical est-il efficace ?",
+    "Faut-il réguler l'industrie pharmaceutique ?",
+    "La santé mentale devrait-elle être gratuite ?",
+    
+    // Sujets économie et consommation
+    "Faut-il interdire les soldes ?",
+    "Le Black Friday est-il bon pour l'économie ?",
+    "Faut-il acheter local ou pas cher ?",
+    "Les publicités sont-elles manipulatrices ?",
+    "Faut-il taxer les transactions financières ?",
+    "Le capitalisme est-il le meilleur système ?",
+    "Faut-il interdire les paradis fiscaux ?",
+    "Les banques centrales sont-elles indépendantes ?",
+    "Faut-il supprimer l'argent liquide ?",
+    "La croissance infinie est-elle possible ?",
+    
+    // Sujets philosophiques et éthiques
+    "Le bonheur s'achète-t-il ?",
+    "Faut-il toujours dire la vérité ?",
+    "La fin justifie-t-elle les moyens ?",
+    "L'être humain est-il fondamentalement bon ?",
+    "Faut-il pardonner trahison ?",
+    "La vie a-t-elle un sens ?",
+    "Faut-il craindre la mort ?",
+    "L'amour existe-t-il vraiment ?",
+    "Faut-il suivre ses rêves ou être réaliste ?",
+    "Le hasard existe-t-il ou tout est déterminé ?"
+]
     "Faut-il interdire les algorithmes sur les réseaux sociaux ?",
     "Les plantes végétales sont-elles vraiment éthiques ?",
     "Le voyage spatial est-il un gaspillage d'argent ?",
@@ -356,7 +478,7 @@ const debateTopics = [
     "Les voitures électriques à induction sont-elles vraiment efficaces ?",
     "La colonisation de la Lune est-elle encore pertinente ?",
     "Faut-il payer les gens qui recyclent les métaux rares ?"
-]
+
 
 // Mots pour le jeu de devinettes
 const devineWords = [
@@ -429,7 +551,115 @@ const devineWords = [
     { answer: "cadeau", indice: "Qu'on offre pour un anniversaire" },
     { answer: "fete", indice: "Célébration avec des gens" },
     { answer: "voyage", indice: "Déplacement vers un autre endroit" },
-    { answer: "reve", indice: "Ce qu'on voit la nuit en dormant" }
+    { answer: "reve", indice: "Ce qu'on voit la nuit en dormant" },
+    
+    // Animaux supplémentaires
+    { answer: "cheval", indice: "Animal noble qu'on monte" },
+    { answer: "vache", indice: "Animal de la ferme qui donne du lait" },
+    { answer: "cochon", indice: "Animal rose qui grogne" },
+    { answer: "mouton", indice: "Animal avec de la laine" },
+    { answer: "poule", indice: "Animal de la ferme qui pond des œufs" },
+    { answer: "canard", indice: "Oiseau qui nage et fait 'coin'" },
+    { answer: "papillon", indice: "Insecte coloré qui vole" },
+    { answer: "abeille", indice: "Insecte qui fait du miel" },
+    { answer: "fourmi", indice: "Petit insecte qui travaille en équipe" },
+    { answer: "cigale", indice: "Insecte qui chante l'été" },
+    
+    // Nature supplémentaire
+    { answer: "nuage", indice: "Forme blanche dans le ciel" },
+    { answer: "pluie", indice: "Eau qui tombe du ciel" },
+    { answer: "neige", indice: "Eau gelée qui tombe en hiver" },
+    { answer: "vent", indice: "Air qui souffle fort" },
+    { answer: "orage", indice: "Tempête avec éclairs" },
+    { answer: "arcenciel", indice: "Couleurs dans le ciel après la pluie" },
+    { answer: "etoile", indice: "Point brillant dans le ciel nocturne" },
+    { answer: "rocher", indice: "Pierre grosse et dure" },
+    { answer: "sable", indice: "Petits grains sur la plage" },
+    { answer: "herbe", indice: "Plante verte qui couvre les champs" },
+    
+    // Objets supplémentaires
+    { answer: "bouteille", indice: "Récipient pour contenir des liquides" },
+    { answer: "verre", indice: "Objet transparent pour boire" },
+    { answer: "assiette", indice: "Ustensile pour manger" },
+    { answer: "cuillere", indice: "Ustensile pour manger les soupes" },
+    { answer: "ciseaux", indice: "Outil pour couper avec deux lames" },
+    { answer: "sac", indice: "Contenant pour transporter des choses" },
+    { answer: "cle", indice: "Outil pour ouvrir les portes" },
+    { answer: "miroir", indice: "Objet qui reflète notre image" },
+    { answer: "brosse", indice: "Outil pour nettoyer ou coiffer" },
+    { answer: "savon", indice: "Produit pour se laver" },
+    
+    // Aliments supplémentaires
+    { answer: "pain", indice: "Aliment qu'on mange avec du beurre" },
+    { answer: "beurre", indice: "Produit laitier jaune à tartiner" },
+    { answer: "sucre", indice: "Ingrédient sucré blanc" },
+    { answer: "sel", indice: "Ingrédient salé blanc" },
+    { answer: "farine", indice: "Poudre blanche pour faire du pain" },
+    { answer: "œuf", indice: "Aliment rond que pondent les poules" },
+    { answer: "lait", indice: "Boisson blanche des vaches" },
+    { answer: "cafe", indice: "Boisson chaude qui réveille" },
+    { answer: "the", indice: "Boisson chaude avec des feuilles" },
+    { answer: "jus", indice: "Boisson faite de fruits" },
+    
+    // Sports et activités supplémentaires
+    { answer: "gymnastique", indice: "Sport d'adresse et de souplesse" },
+    { answer: "danse", indice: "Art de bouger son corps en rythme" },
+    { answer: "chant", indice: "Art de produire des mélodies avec sa voix" },
+    { answer: "peinture", indice: "Art de créer des images avec des couleurs" },
+    { answer: "lecture", indice: "Activité de lire des livres" },
+    { answer: "cuisine", indice: "Art de préparer des plats" },
+    { answer: "jardinage", indice: "Activité de cultiver des plantes" },
+    { answer: "pêche", indice: "Activité de capturer des poissons" },
+    { answer: "chasse", indice: "Activité de chasser des animaux" },
+    { answer: "escalade", indice: "Sport de grimper les parois" },
+    
+    // Divers supplémentaires
+    { answer: "argent", indice: "Ce qu'on utilise pour acheter" },
+    { answer: "temps", indice: "Ce qui passe et ne revient jamais" },
+    { answer: "amour", indice: "Sentiment fort pour quelqu'un" },
+    { answer: "amitie", indice: "Relation entre amis" },
+    { answer: "famille", indice: "Parents, frères, sœurs" },
+    { answer: "bonheur", indice: "Sentiment de joie profonde" },
+    { answer: "tristesse", indice: "Sentiment de mélancolie" },
+    { answer: "colere", indice: "Sentiment de forte irritation" },
+    { answer: "peur", indice: "Sentiment d'angoisse" },
+    { answer: "espoir", indice: "Sentiment positif pour l'avenir" },
+    
+    // Technologies
+    { answer: "smartphone", indice: "Téléphone intelligent moderne" },
+    { answer: "ordinateur", indice: "Machine électronique pour travailler" },
+    { answer: "internet", indice: "Réseau mondial d'informations" },
+    { answer: "email", indice: "Message électronique" },
+    { answer: "site", indice: "Endroit sur internet" },
+    { answer: "application", indice: "Logiciel pour téléphone" },
+    { answer: "camera", indice: "Appareil pour prendre des photos" },
+    { answer: "ecran", indice: "Surface qui affiche des images" },
+    { answer: "clavier", indice: "Appareil pour taper du texte" },
+    { answer: "souris", indice: "Périphérique pour naviguer" },
+    
+    // Vêtements
+    { answer: "chemise", indice: "Haut avec boutons et col" },
+    { answer: "pantalon", indice: "Vêtement pour les jambes" },
+    { answer: "robe", indice: "Vêtement féminin une pièce" },
+    { answer: "chaussures", indice: "Vêtement pour les pieds" },
+    { answer: "chapeau", indice: "Accessoire pour la tête" },
+    { answer: "lunettes", indice: "Accessoire pour les yeux" },
+    { answer: "montre", indice: "Accessoire pour voir l'heure" },
+    { answer: "sac", indice: "Accessoire pour porter des affaires" },
+    { answer: "ceinture", indice: "Accessoire pour le pantalon" },
+    { answer: "gants", indice: "Accessoire pour les mains" },
+    
+    // Couleurs
+    { answer: "rouge", indice: "Couleur du sang et du feu" },
+    { answer: "bleu", indice: "Couleur du ciel et de la mer" },
+    { answer: "vert", indice: "Couleur de l'herbe et des arbres" },
+    { answer: "jaune", indice: "Couleur du soleil et des citrons" },
+    { answer: "noir", indice: "Couleur de la nuit" },
+    { answer: "blanc", indice: "Couleur de la neige et du lait" },
+    { answer: "orange", indice: "Couleur des oranges et du coucher de soleil" },
+    { answer: "violet", indice: "Couleur des fleurs et de la royauté" },
+    { answer: "rose", indice: "Couleur des fleurs et de l'amour" },
+    { answer: "marron", indice: "Couleur du bois et du chocolat" }
 ]
 
 // Liens interdits
@@ -537,6 +767,84 @@ function saveGroups(groups) {
     } catch (err) {
         console.log("Erreur sauvegarde groupes:", err)
     }
+}
+
+// Fonction pour gérer les timeouts des jeux
+function startGameTimer(jid, sock, gameType, timeoutSeconds) {
+    // Annuler le timer existant si présent
+    if (gameTimers.has(jid)) {
+        clearTimeout(gameTimers.get(jid))
+    }
+    
+    // Démarrer le nouveau timer
+    const timer = setTimeout(async () => {
+        const game = activeGames.get(jid)
+        if (game) {
+            let answerText = ""
+            let timeoutMsg = ""
+            
+            switch (game.type) {
+                case "country":
+                    answerText = game.answer
+                    timeoutMsg = `⏱️ TEMPS ÉCOULÉ !\n\n🌍 La réponse était : **${answerText}**\n\nPersonne n'a trouvé la bonne réponse !`
+                    break
+                case "capitale":
+                    answerText = game.answer
+                    timeoutMsg = `⏱️ TEMPS ÉCOULÉ !\n\n🏛️ La capitale était : **${answerText}**\n\nPersonne n'a trouvé la bonne réponse !`
+                    break
+                case "vraioufaux":
+                    answerText = game.answer ? "VRAI" : "FAUX"
+                    const explanation = game.explanation || ""
+                    timeoutMsg = `⏱️ TEMPS ÉCOULÉ !\n\n❓ La réponse était : **${answerText}**\n💡 ${explanation}\n\nPersonne n'a trouvé la bonne réponse !`
+                    break
+                case "devine":
+                    answerText = game.answer
+                    const indice = game.wordObj?.indice || ""
+                    timeoutMsg = `⏱️ TEMPS ÉCOULÉ !\n\n🔮 Le mot était : **${answerText}**\n💡 Indice : ${indice}\n\nPersonne n'a trouvé la bonne réponse !`
+                    break
+                default:
+                    answerText = game.answer
+                    timeoutMsg = `⏱️ TEMPS ÉCOULÉ !\n\nLa réponse était : **${answerText}**`
+            }
+            
+            await sock.sendMessage(jid, { text: timeoutMsg })
+            activeGames.delete(jid)
+            gameTimers.delete(jid)
+        }
+    }, timeoutSeconds * 1000)
+    
+    gameTimers.set(jid, timer)
+}
+
+// Fonction pour obtenir une question non répétée
+function getUnusedQuestion(jid, gameType, allQuestions, getIdFunc) {
+    // Initialiser les questions utilisées pour ce groupe si nécessaire
+    if (!usedQuestions.has(jid)) {
+        usedQuestions.set(jid, { country: [], vraioufaux: [], capitale: [], devine: [], debat: [] })
+    }
+    
+    const groupUsedQuestions = usedQuestions.get(jid)
+    const usedIds = groupUsedQuestions[gameType] || []
+    
+    // Filtrer les questions non utilisées
+    const availableQuestions = allQuestions.filter(q => !usedIds.includes(getIdFunc(q)))
+    
+    // Si toutes les questions ont été utilisées, réinitialiser
+    if (availableQuestions.length === 0) {
+        groupUsedQuestions[gameType] = []
+        return allQuestions[Math.floor(Math.random() * allQuestions.length)]
+    }
+    
+    // Choisir une question aléatoire parmi les disponibles
+    const selectedQuestion = availableQuestions[Math.floor(Math.random() * availableQuestions.length)]
+    
+    // Ajouter aux questions utilisées (limiter à 50 pour éviter la mémoire infinie)
+    if (usedIds.length >= 50) {
+        groupUsedQuestions[gameType] = usedIds.slice(-25) // Garder seulement les 25 dernières
+    }
+    groupUsedQuestions[gameType].push(getIdFunc(selectedQuestion))
+    
+    return selectedQuestion
 }
 
 function addWarn(userId, groupId, reason) {
@@ -950,26 +1258,75 @@ async function startBot() {
         }
 
         // CRUSH
-        if (text === "!crush") {
+        if (text.startsWith("!crush")) {
             if (!jid.endsWith("@g.us")) return
             
             const metadata = await sock.groupMetadata(jid)
             const participants = metadata.participants.map(p => p.id)
             
-            // Sélectionner deux participants aléatoires
-            const shuffled = participants.sort(() => 0.5 - Math.random())
-            const cr1 = shuffled[0]
-            const cr2 = shuffled[1]
+            // Extraire la mention si présente
+            const mentioned = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []
+            let targetUser = null
             
-            const crushMsg = `╭───〔  🤫 CRUSH SECRET 〕───⬣
+            if (mentioned.length > 0) {
+                targetUser = mentioned[0]
+            } else {
+                // Version sans mention : choisir 2 participants aléatoires
+                const shuffled = participants.sort(() => 0.5 - Math.random())
+                const cr1 = shuffled[0]
+                const cr2 = shuffled[1]
+                
+                const crushMsg = `╭───〔  🤫 CRUSH SECRET 〕───⬣
 │◦❒ @${cr1.split('@')[0]} a un crush sur @${cr2.split('@')[0]} !
 │◦❒ 
 │◦❒ Mais chut, c'est un secret... 🤐
 ╰════════════════════════⬣`
+                
+                await sock.sendMessage(jid, {
+                    text: crushMsg,
+                    mentions: [cr1, cr2]
+                }, { quoted: msg })
+                return
+            }
+            
+            // Version avec mention : trouver un crush pour la personne mentionnée
+            const possibleCrushes = participants.filter(p => p !== targetUser)
+            
+            if (possibleCrushes.length === 0) {
+                await sock.sendMessage(jid, { text: "❌ Personne d'autre disponible dans le groupe !" }, { quoted: msg })
+                return
+            }
+            
+            // Choisir un crush aléatoire
+            const crush = possibleCrushes[Math.floor(Math.random() * possibleCrushes.length)]
+            
+            // Messages humoristiques aléatoires
+            const crushMessages = [
+                `💕 L'algorithme de l'amour a parlé !`,
+                `🔮 Ma boule de cristal ne se trompe jamais !`,
+                `💘 L'analyse des données est formelle !`,
+                `❤️ Les étoiles s'alignent pour révéler...`,
+                `💝 Les mathématiques du sentiment sont claires !`,
+                `🌹 Le destin a choisi...`,
+                `💗 La science des cœurs a déterminé...`,
+                `💖 L'intelligence artificielle a calculé...`
+            ]
+            
+            const randomMessage = crushMessages[Math.floor(Math.random() * crushMessages.length)]
+            
+            const crushMsg = `╭───〔  💕 CRUSH DÉTECTÉ 〕───⬣
+│◦❒ ${randomMessage}
+│◦❒ 
+│◦❒ @${targetUser.split('@')[0]} est secrètement amoureux(se) de @${crush.split('@')[0]} 💘
+│◦❒ 
+│◦❒ 💘 Match parfait à ${Math.floor(Math.random() * 30) + 70}% ! 💘
+│◦❒ 
+│◦❒ Psst... c'est notre secret ! 🤫
+╰════════════════════════⬣`
             
             await sock.sendMessage(jid, {
                 text: crushMsg,
-                mentions: [cr1, cr2]
+                mentions: [targetUser, crush]
             }, { quoted: msg })
         }
 
@@ -1047,6 +1404,34 @@ async function startBot() {
             await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
         }
 
+        // GAME CAPITALE
+        if (text === "!game capitale") {
+            if (!jid.endsWith("@g.us")) return
+            
+            if (activeGames.has(jid)) {
+                await sock.sendMessage(jid, { text: "❌ Un jeu est déjà en cours !" }, { quoted: msg })
+                return
+            }
+            
+            const country = countries[Math.floor(Math.random() * countries.length)]
+            activeGames.set(jid, { type: "capitale", answer: country.capitale, attempts: 0 })
+            
+            const gameMsg = `🏛️ DEVINE LA CAPITALE
+
+🌍 Pays : ${country.name}
+
+💡 Indice : ${country.indice}
+
+🔤 Lettres : ${country.capitale.charAt(0)}${"_".repeat(country.capitale.length - 1)} (${country.capitale.length} lettres)
+
+⏱️ Temps : 75 secondes
+🏆 Récompense : 10 points
+
+Écris le nom de la capitale pour gagner !`
+            
+            await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
+        }
+
         // VRAI OU FAUX
         if (text === "!vraioufaux") {
             if (!jid.endsWith("@g.us")) return
@@ -1071,35 +1456,7 @@ Réponds par "vrai" ou "faux" pour gagner !`
             await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
         }
 
-        // GAME CAPITALE
-        if (text === "!game capitale") {
-            if (!jid.endsWith("@g.us")) return
-            
-            if (activeGames.has(jid)) {
-                await sock.sendMessage(jid, { text: "❌ Un jeu est déjà en cours !" }, { quoted: msg })
-                return
-            }
-            
-            const country = countries[Math.floor(Math.random() * countries.length)]
-            activeGames.set(jid, { type: "capitale", answer: country.capitale, attempts: 0 })
-            
-            const gameMsg = `🏛️ DEVINE LA CAPITALE
-
-🌍 Pays : ${country.name}
-
-💡 Indice : ${country.indice}
-
-🔤 Lettres : ${country.capitale.charAt(0)}${"_".repeat(country.capitale.length - 1)} (${country.capitale.length} lettres)
-
-⏱️ Temps : 60 secondes
-🏆 Récompense : 10 points
-
-Écris le nom de la capitale pour gagner !`
-            
-            await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
-        }
-
-        // DEVINE
+        // GAME DEVINE
         if (text === "!devine") {
             if (!jid.endsWith("@g.us")) return
             
@@ -1108,94 +1465,23 @@ Réponds par "vrai" ou "faux" pour gagner !`
                 return
             }
             
-            const devineWords = [
-                // Animaux
-                { answer: "chat", indice: "Animal qui miaule et ronronne" },
-                { answer: "chien", indice: "Meilleur ami de l'homme qui aboie" },
-                { answer: "elephant", indice: "Plus grand animal terrestre avec une trompe" },
-                { answer: "lion", indice: "Roi de la jungle avec une crinière" },
-                { answer: "souris", indice: "Petit rongeur qui adore le fromage" },
-                { answer: "poisson", indice: "Animal qui vit dans l'eau et nage" },
-                { answer: "oiseau", indice: "Animal qui vole et a des plumes" },
-                { answer: "serpent", indice: "Reptile long sans pattes qui rampe" },
-                
-                // Nature
-                { answer: "soleil", indice: "Étoile qui nous donne la lumière et la chaleur" },
-                { answer: "lune", indice: "Satellite naturel de la Terre" },
-                { answer: "eau", indice: "Liquide indispensable à la vie" },
-                { answer: "feu", indice: "Élément qui chauffe et brûle" },
-                { answer: "arbre", indice: "Plante avec un tronc et des feuilles" },
-                { answer: "fleur", indice: "Plante colorée qui sent bon" },
-                { answer: "plage", indice: "Sable au bord de la mer" },
-                { answer: "montagne", indice: "Très haute colline" },
-                { answer: "foret", indice: "Endroit avec beaucoup d'arbres" },
-                { answer: "desert", indice: "Endroit très chaud et sec avec du sable" },
-                
-                // Objets
-                { answer: "voiture", indice: "Véhicule à 4 roues pour se déplacer" },
-                { answer: "maison", indice: "Endroit où on habite" },
-                { answer: "livre", indice: "Objet avec des pages pour lire" },
-                { answer: "table", indice: "Meuble avec 4 pieds pour poser des choses" },
-                { answer: "chaise", indice: "Meuble pour s'asseoir" },
-                { answer: "porte", indice: "Pour entrer ou sortir d'une pièce" },
-                { answer: "fenetre", indice: "Ouverture avec du verre pour voir dehors" },
-                { answer: "telephone", indice: "Appareil pour appeler et envoyer des messages" },
-                { answer: "ordinateur", indice: "Machine pour travailler et jouer" },
-                { answer: "television", indice: "Écran pour regarder des films et émissions" },
-                { answer: "radio", indice: "Appareil pour écouter de la musique" },
-                { answer: "horloge", indice: "Montre les heures et les minutes" },
-                { answer: "lampe", indice: "Objet qui éclaire une pièce" },
-                { answer: "couteau", indice: "Ustensile pour couper" },
-                { answer: "fourchette", indice: "Ustensile pour manger" },
-                
-                // Aliments
-                { answer: "pomme", indice: "Fruit rouge ou vert" },
-                { answer: "banane", indice: "Fruit jaune et long que les singes adorent" },
-                { answer: "orange", indice: "Fruit rond et orange plein de vitamine C" },
-                { answer: "pain", indice: "Aliment qu'on mange avec du beurre" },
-                { answer: "fromage", indice: "Produit laitier qui fond sur les pizzas" },
-                { answer: "chocolat", indice: "Douceur brune qui fait fondre" },
-                { answer: "pizza", indice: "Plat italien rond avec du fromage" },
-                { answer: "pates", indice: "Nourriture italienne longue" },
-                { answer: "riz", indice: "Grain blanc qu'on mange en Asie" },
-                { answer: "salade", indice: "Plat vert avec des légumes" },
-                
-                // Sports et activités
-                { answer: "football", indice: "Sport avec un ballon qu'on ne touche pas avec les mains" },
-                { answer: "basketball", indice: "Sport où on lance un ballon dans un panier" },
-                { answer: "tennis", indice: "Sport avec une raquette et une balle jaune" },
-                { answer: "natation", indice: "Sport de nage dans l'eau" },
-                { answer: "course", indice: "Sport de course à pied" },
-                { answer: "velo", indice: "Véhicule à 2 roues qu'on pédale" },
-                
-                // Divers
-                { answer: "ecole", indice: "Endroit où on va apprendre" },
-                { answer: "hopital", indice: "Endroit où on va quand on est malade" },
-                { answer: "magasin", indice: "Endroit où on achète des choses" },
-                { answer: "cinema", indice: "Endroit où on regarde des films sur grand écran" },
-                { answer: "musique", indice: "Art des sons et des mélodies" },
-                { answer: "jeu", indice: "Activité pour s'amuser" },
-                { answer: "cadeau", indice: "Qu'on offre pour un anniversaire" },
-                { answer: "fete", indice: "Célébration avec des gens" },
-                { answer: "voyage", indice: "Déplacement vers un autre endroit" },
-                { answer: "reve", indice: "Ce qu'on voit la nuit en dormant" }
-            ]
-            
-            const wordData = devineWords[Math.floor(Math.random() * devineWords.length)]
+            const wordData = getUnusedQuestion(jid, "devine", devineWords, w => w.answer)
             activeGames.set(jid, { type: "devine", answer: wordData.answer, indice: wordData.indice, attempts: 0, hints: [] })
             
             const gameMsg = `╭───〔 🧠 DEVINE 〕───⬣
 │
-│ Indice :
-│ ${wordData.indice}
-│
-│ Réponse ?
-│
-│ ⏱️ 40 secondes
-│
+│◦❒ Mot à deviner : ${"_".repeat(wordData.answer.length).split("").join(" ")} (${wordData.answer.length} lettres)
+│◦❒ 
+│◦❒ 💡 Indice : ${wordData.indice}
+│◦❒ 
+│◦❒ ⏱️ Temps : 45 secondes
+│◦❒ 🏆 Récompense : 8 points
+│◦❒ 
+│◦❒ 💡 Tape "!indice" pour un indice supplémentaire
 ╰════════════════════════⬣`
             
             await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
+            startGameTimer(jid, sock, "devine", 45)
         }
 
         // INDICE
@@ -1316,6 +1602,11 @@ Réponds par "vrai" ou "faux" pour gagner !`
                     mentions: [winnerId]
                 }, { quoted: msg })
                 activeGames.delete(jid)
+                // Nettoyer le timer
+                if (gameTimers.has(jid)) {
+                    clearTimeout(gameTimers.get(jid))
+                    gameTimers.delete(jid)
+                }
             } else if (game.attempts >= 5) {
                 const answerText = game.type === "vraioufaux" ? 
                     (game.answer ? "VRAI" : "FAUX") : game.answer
@@ -1323,6 +1614,11 @@ Réponds par "vrai" ou "faux" pour gagner !`
                     text: `❌ Perdu ! La réponse était : ${answerText}` 
                 }, { quoted: msg })
                 activeGames.delete(jid)
+                // Nettoyer le timer
+                if (gameTimers.has(jid)) {
+                    clearTimeout(gameTimers.get(jid))
+                    gameTimers.delete(jid)
+                }
             }
             // Si la réponse est fausse, le bot ne répond pas
         }
@@ -1340,7 +1636,7 @@ Réponds par "vrai" ou "faux" pour gagner !`
             const randomType = gameTypes[Math.floor(Math.random() * gameTypes.length)]
             
             if (randomType === "country") {
-                const country = countries[Math.floor(Math.random() * countries.length)]
+                const country = getUnusedQuestion(jid, "country", countries, c => c.name)
                 activeGames.set(jid, { type: "country", answer: country.name, attempts: 0 })
                 
                 const gameMsg = `🌍 DEVINE LE PAYS 
@@ -1349,32 +1645,34 @@ Réponds par "vrai" ou "faux" pour gagner !`
 
 🔤 Lettres : ${country.name.charAt(0)}${"_".repeat(country.name.length - 1)} (${country.name.length} lettres)
 
-⏱️ Temps : 60 secondes
+⏱️ Temps : 75 secondes
 🏆 Récompense : 10 points
 
 🎲 Jeu aléatoire choisi : Pays !
 Écris le nom du pays pour gagner !`
                 
                 await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
+                startGameTimer(jid, sock, "country", 75)
                 
             } else if (randomType === "vraioufaux") {
-                const question = trueFalseQuestions[Math.floor(Math.random() * trueFalseQuestions.length)]
+                const question = getUnusedQuestion(jid, "vraioufaux", trueFalseQuestions, q => q.question)
                 activeGames.set(jid, { type: "vraioufaux", answer: question.answer, explanation: question.explanation, attempts: 0 })
                 
                 const gameMsg = `❓ VRAI OU FAUX
 
 💭 Question : ${question.question}
 
-⏱️ Temps : 30 secondes
+⏱️ Temps : 25 secondes
 🏆 Récompense : 5 points
 
 🎲 Jeu aléatoire choisi : Vrai ou Faux !
 Réponds par "vrai" ou "faux" pour gagner !`
                 
                 await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
+                startGameTimer(jid, sock, "vraioufaux", 25)
                 
             } else if (randomType === "capitale") {
-                const country = countries[Math.floor(Math.random() * countries.length)]
+                const country = getUnusedQuestion(jid, "capitale", countries, c => c.capitale)
                 activeGames.set(jid, { type: "capitale", answer: country.capitale, attempts: 0 })
                 
                 const gameMsg = `🏛️ DEVINE LA CAPITALE
@@ -1385,117 +1683,125 @@ Réponds par "vrai" ou "faux" pour gagner !`
 
 🔤 Lettres : ${country.capitale.charAt(0)}${"_".repeat(country.capitale.length - 1)} (${country.capitale.length} lettres)
 
-⏱️ Temps : 60 secondes
+⏱️ Temps : 75 secondes
 🏆 Récompense : 10 points
 
 🎲 Jeu aléatoire choisi : Capitale !
 Écris le nom de la capitale pour gagner !`
                 
                 await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
+                startGameTimer(jid, sock, "capitale", 75)
                 
             } else if (randomType === "devine") {
-                const wordObj = devineWords[Math.floor(Math.random() * devineWords.length)]
+                const wordObj = getUnusedQuestion(jid, "devine", devineWords, w => w.answer)
                 activeGames.set(jid, { type: "devine", answer: wordObj.answer, attempts: 0, hints: [], wordObj: wordObj })
                 
                 const gameMsg = `🔮 DEVINE LE MOT
 
 🔤 Mot à deviner : ${"_".repeat(wordObj.answer.length).split("").join(" ")} (${wordObj.answer.length} lettres)
 
-⏱️ Temps : 60 secondes
+💡 Indice : ${wordObj.indice}
+
+⏱️ Temps : 45 secondes
 🏆 Récompense : 8 points
 
 🎲 Jeu aléatoire choisi : Devine le mot !
 Écris le mot pour gagner !
-💡 Tape "!indice" pour un indice`
+💡 Tape "!indice" pour un indice supplémentaire`
                 
                 await sock.sendMessage(jid, { text: gameMsg }, { quoted: msg })
+                startGameTimer(jid, sock, "devine", 45)
             }
-        }
-
-        // CRUSH
-        if (text.startsWith("!crush")) {
-            if (!jid.endsWith("@g.us")) return
-            
-            const metadata = await sock.groupMetadata(jid)
-            const participants = metadata.participants.map(p => p.id)
-            
-            // Extraire la mention si présente
-            const mentioned = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || []
-            let targetUser = null
-            
-            if (mentioned.length > 0) {
-                targetUser = mentioned[0]
-            } else {
-                await sock.sendMessage(jid, { text: "❌ Mentionne quelqu'un avec !crush @utilisateur" }, { quoted: msg })
-                return
-            }
-            
-            // Exclure l'utilisateur lui-même
-            const possibleCrushes = participants.filter(p => p !== targetUser)
-            
-            if (possibleCrushes.length === 0) {
-                await sock.sendMessage(jid, { text: "❌ Personne d'autre disponible dans le groupe !" }, { quoted: msg })
-                return
-            }
-            
-            // Choisir un crush aléatoire
-            const crush = possibleCrushes[Math.floor(Math.random() * possibleCrushes.length)]
-            
-            // Messages humoristiques aléatoires
-            const crushMessages = [
-                `💕 L'algorithme de l'amour a parlé !`,
-                `🔮 Ma boule de cristal ne se trompe jamais !`,
-                `💘 L'analyse des données est formelle !`,
-                `❤️ Les étoiles s'alignent pour révéler...`,
-                `💝 Les mathématiques du sentiment sont claires !`,
-                `🌹 Le destin a choisi...`,
-                `💗 La science des cœurs a déterminé...`,
-                `💖 L'intelligence artificielle a calculé...`
-            ]
-            
-            const randomMessage = crushMessages[Math.floor(Math.random() * crushMessages.length)]
-            
-            const crushMsg = `╭───〔  💕 CRUSH DÉTECTÉ 〕───⬣
-│◦❒ ${randomMessage}
-│◦❒ 
-│◦❒ @${targetUser.split('@')[0]} est secrètement amoureux(se) de @${crush.split('@')[0]} 💘
-│◦❒ 
-│◦❒ 💘 Match parfait à ${Math.floor(Math.random() * 30) + 70}% ! 💘
-│◦❒ 
-│◦❒ Psst... c'est notre secret ! 🤫
-╰════════════════════════⬣`
-            
-            await sock.sendMessage(jid, {
-                text: crushMsg,
-                mentions: [targetUser, crush]
-            }, { quoted: msg })
         }
 
         // DÉBAT
         if (text === "!debat") {
             if (!jid.endsWith("@g.us")) return
             
-            const topic = debateTopics[Math.floor(Math.random() * debateTopics.length)]
+            const topic = getUnusedQuestion(jid, "debat", debateTopics, t => t)
             
             const debateMsg = `╭───〔  🗣️ DÉBAT 〕───⬣
 │◦❒ Sujet : ${topic}
 │◦❒ 
 │◦❒ Donnez votre avis !
+│◦❒ 
 ╰════════════════════════⬣`
             
             await sock.sendMessage(jid, { text: debateMsg }, { quoted: msg })
         }
 
         // ROLL
-        if (text === "!roll") {
+        if (text.startsWith("!roll")) {
             if (!jid.endsWith("@g.us")) return
             
-            const roll = Math.floor(Math.random() * 100) + 1
+            let maxNumber = 100
+            let customMessage = ""
+            
+            // Vérifier si un nombre est spécifié
+            const args = text.slice(6).trim()
+            if (args) {
+                const parsedArgs = args.split(" ")
+                if (parsedArgs.length >= 1 && !isNaN(parsedArgs[0])) {
+                    maxNumber = parseInt(parsedArgs[0])
+                    if (maxNumber > 1000000) maxNumber = 1000000
+                    if (maxNumber < 1) maxNumber = 1
+                }
+                if (parsedArgs.length >= 2) {
+                    customMessage = parsedArgs.slice(1).join(" ")
+                }
+            }
+            
+            const roll = Math.floor(Math.random() * maxNumber) + 1
+            
+            // Messages variés selon le résultat
+            let messageReaction = ""
+            let emojiReaction = ""
+            
+            if (maxNumber === 100) {
+                if (roll >= 95) {
+                    messageReaction = "🎉 LÉGENDAIRE ! Tu as touché le jackpot !"
+                    emojiReaction = "🎰"
+                } else if (roll >= 80) {
+                    messageReaction = "✨ Exceptionnel ! C'est un super score !"
+                    emojiReaction = "💎"
+                } else if (roll >= 60) {
+                    messageReaction = "👍 Très bien ! Au-dessus de la moyenne !"
+                    emojiReaction = "🌟"
+                } else if (roll >= 40) {
+                    messageReaction = "😐 Pas mal ! Dans la moyenne !"
+                    emojiReaction = "📊"
+                } else if (roll >= 20) {
+                    messageReaction = "😅 Peut mieux faire ! En dessous de la moyenne !"
+                    emojiReaction = "📉"
+                } else {
+                    messageReaction = "😬 Oh là... C'est vraiment pas de chance !"
+                    emojiReaction = "💀"
+                }
+            } else {
+                if (roll === maxNumber) {
+                    messageReaction = `🎯 PARFAIT ! Maximum possible sur ${maxNumber} !`
+                    emojiReaction = "🏆"
+                } else if (roll >= maxNumber * 0.9) {
+                    messageReaction = `🔥 EXCELLENT ! Presque le maximum !`
+                    emojiReaction = "⭐"
+                } else if (roll >= maxNumber * 0.7) {
+                    messageReaction = `💪 SOLIDE ! Bonne performance !`
+                    emojiReaction = "💪"
+                } else if (roll >= maxNumber * 0.4) {
+                    messageReaction = `📊 MOYEN ! Dans la norme !`
+                    emojiReaction = "📊"
+                } else {
+                    messageReaction = `📈 FAIBLE ! Peut mieux faire !`
+                    emojiReaction = "📈"
+                }
+            }
             
             const rollMsg = `╭───〔  🎲 LANCER DE DÉ 〕───⬣
-│◦❒ Résultat : ${roll}/100
+│◦❒ ${emojiReaction} Résultat : ${roll}/${maxNumber}
+│◦❒ 📊 Pourcentage : ${Math.round((roll/maxNumber) * 100)}%
 │◦❒ 
-│◦❒ ${roll >= 90 ? "🎉 Incroyable !" : roll >= 70 ? "✨ Très bien !" : roll >= 50 ? "👍 Bien !" : roll >= 30 ? "😐 Pas mal !" : "😅 Peut mieux faire !"}
+│◦❒ ${messageReaction}
+${customMessage ? `│◦❒ 💬 Message perso : ${customMessage}` : ""}
 ╰════════════════════════⬣`
             
             await sock.sendMessage(jid, { text: rollMsg }, { quoted: msg })
@@ -1525,7 +1831,51 @@ Réponds par "vrai" ou "faux" pour gagner !`
                 "Ma réponse est non !",
                 "Mes sources disent non !",
                 "Très douteux !",
-                "Perspectives ne sont pas bonnes !"
+                "Perspectives ne sont pas bonnes !",
+                "Absolument !",
+                "C'est évident !",
+                "Je dirais que oui...",
+                "Les chances sont bonnes !",
+                "Selon mes calculs, oui !",
+                "Mon intuition dit oui !",
+                "Les étoiles s'alignent pour oui !",
+                "C'est écrit dans les astres !",
+                "100% certain !",
+                "Je parie ma réputation sur oui !",
+                "La logique indique oui !",
+                "Mon analyse confirme oui !",
+                "Les données supportent cette réponse !",
+                "C'est la meilleure option !",
+                "Je suis confiant à 100% !",
+                "Les probabilités sont en ta faveur !",
+                "Mon algorithme dit oui !",
+                "C'est mathématiquement correct !",
+                "La réponse est claire comme le cristal !",
+                "Je mise tout mon argent sur oui !",
+                "Les faits parlent pour oui !",
+                "C'est incontestable !",
+                "Mon instinct me dit oui !",
+                "La sagesse populaire dit oui !",
+                "Les experts s'accordent sur oui !",
+                "C'est la vérité pure !",
+                "Je suis presque certain !",
+                "Les preuves sont écrasantes !",
+                "C'est scientifiquement prouvé !",
+                "Mon âge d'expérience dit oui !",
+                "Les statistiques sont formelles : oui !",
+                "C'est la réponse la plus logique !",
+                "Je voudrais parier sur oui !",
+                "Les conséquences sont positives : oui !",
+                "C'est la décision la plus sage !",
+                "Je serais surpris si la réponse était non !",
+                "Les signes ne trompent jamais : oui !",
+                "C'est le choix évident !",
+                "Ma boule de cristal ne ment jamais : oui !",
+                "Les anciens le savaient déjà : oui !",
+                "C'est universellement reconnu : oui !",
+                "Je le sens dans mes circuits : oui !",
+                "Les prophéties l'annonçaient : oui !",
+                "C'est la volonté de l'univers : oui !"
             ]
             
             const response = responses[Math.floor(Math.random() * responses.length)]
