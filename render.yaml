@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pipchi-bot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: PORT
+        value: 8080

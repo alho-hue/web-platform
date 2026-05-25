@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: pipchi-web-platform
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: PORT
+        value: 3000
+      - key: ADMIN_KEY
+        value: PipChi-admin
+      - key: INACTIVITY_DAYS
+        value: 7
