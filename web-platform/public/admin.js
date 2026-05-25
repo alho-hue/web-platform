@@ -92,13 +92,20 @@ async function loadAdmin() {
     </article>
   `).join('');
   document.querySelector('#adminNewsList').innerHTML = (data.news.current || []).map((item) => `
-    <article class="table-row">
-      <div>
+    <article class="table-row news-item">
+      <div class="news-content">
         <strong>${escapeHtml(item.title || 'Nouveaute')}</strong>
         <p>${escapeHtml(item.body || '')}</p>
+        <p class="muted">ID: ${escapeHtml(item.id || '')}</p>
       </div>
-      <div><p class="muted">${item.date ? new Date(item.date).toLocaleString() : ''}</p></div>
-      <div class="row-actions"><button class="danger" data-news-delete="${escapeHtml(item.id || '')}">Supprimer</button></div>
+      <div class="news-meta">
+        <p class="muted">${item.date ? new Date(item.date).toLocaleString() : ''}</p>
+      </div>
+      <div class="row-actions">
+        <button class="danger delete-news-btn" data-news-id="${escapeHtml(item.id || '')}" data-news-title="${escapeHtml(item.title || 'cette nouveauté')}">
+          Supprimer
+        </button>
+      </div>
     </article>
   `).join('') || '<p class="muted">Aucune nouveaute publiee.</p>';
   
@@ -137,9 +144,10 @@ async function sendBroadcast() {
   }
 }
 
-async function deleteNews(id) {
+async function deleteNews(id, title) {
+  if (!confirm(`Supprimer la nouveauté "${title}" ? Cette action est irréversible.`)) return;
   const data = await api('/api/news/delete', { adminKey: ADMIN_KEY, id });
-  appendAdmin(data.ok ? 'Nouveaute supprimee.' : data.message);
+  appendAdmin(data.ok ? `Nouveauté "${title}" supprimée avec succès.` : data.message);
   if (data.ok) await loadAdmin();
 }
 
@@ -161,7 +169,10 @@ document.querySelector('#adminUsers').addEventListener('click', (event) => {
   if (action && user) adminAction(user, action);
 });
 document.querySelector('#adminNewsList').addEventListener('click', (event) => {
-  if (event.target.dataset.newsDelete) deleteNews(event.target.dataset.newsDelete);
+  const btn = event.target.closest('.delete-news-btn');
+  if (btn) {
+    deleteNews(btn.dataset.newsId, btn.dataset.newsTitle);
+  }
 });
 
 connectAdminLogs();

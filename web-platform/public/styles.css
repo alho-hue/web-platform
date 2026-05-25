@@ -396,6 +396,30 @@ button.danger {
   font-size: 0.98rem;
 }
 
+.news-item {
+  padding: 16px;
+  background: var(--panel-2);
+  border-radius: 6px;
+}
+
+.news-content {
+  display: grid;
+  gap: 6px;
+}
+
+.news-meta {
+  display: flex;
+  align-items: center;
+}
+
+.delete-news-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 140px;
+  justify-content: center;
+}
+
 time,
 .command-card span,
 .mini-state {
@@ -409,17 +433,69 @@ time,
   margin: 12px 0 0;
 }
 
-.command-grid,
-.safety-grid {
+.command-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 24px;
   margin-top: 18px;
 }
 
-.command-card {
+.command-category {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--panel-2);
+}
+
+.category-title {
+  font-size: 1.1rem;
+  color: var(--accent-2);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.command-items {
   display: grid;
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.command-card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--panel);
+  display: grid;
+  gap: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.command-card:hover {
+  border-color: var(--accent);
+}
+
+.command-code {
+  color: #96f0bf;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.9rem;
+  background: rgba(150, 240, 191, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.command-desc {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.safety-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
 }
 
 .table {

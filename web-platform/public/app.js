@@ -149,12 +149,33 @@ async function renderCommands(filter = '') {
     item.command.toLowerCase().includes(needle) ||
     item.text.toLowerCase().includes(needle)
   ));
-  document.querySelector('#commandList').innerHTML = visible.map((item) => `
-    <article class="command-card">
-      <span>${escapeHtml(item.category)}</span>
-      <strong>${escapeHtml(item.command)}</strong>
-      <p>${escapeHtml(item.text)}</p>
-    </article>
+  
+  // Grouper par catégorie
+  const grouped = {};
+  visible.forEach((item) => {
+    if (!grouped[item.category]) grouped[item.category] = [];
+    grouped[item.category].push(item);
+  });
+  
+  const categories = Object.keys(grouped).sort();
+  
+  if (categories.length === 0) {
+    document.querySelector('#commandList').innerHTML = '<p class="muted">Aucune commande trouvee.</p>';
+    return;
+  }
+  
+  document.querySelector('#commandList').innerHTML = categories.map((category) => `
+    <div class="command-category">
+      <h3 class="category-title">${escapeHtml(category)}</h3>
+      <div class="command-items">
+        ${grouped[category].map((item) => `
+          <article class="command-card">
+            <code class="command-code">${escapeHtml(item.command)}</code>
+            <p class="command-desc">${escapeHtml(item.text)}</p>
+          </article>
+        `).join('')}
+      </div>
+    </div>
   `).join('');
 }
 
