@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PipChi Admin</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="topbar">
+      <div>
+        <p class="eyebrow">PipChi Admin</p>
+        <h1>Console admin</h1>
+      </div>
+      <a class="link-button" href="/">Page utilisateur</a>
+    </section>
+
+    <section class="grid">
+      <section class="panel compact">
+        <h2>Mon bot admin</h2>
+        <label>Nom <input id="adminName" placeholder="Admin"></label>
+        <label>Numero WhatsApp <input id="adminPhone" placeholder="+223..."></label>
+        <div class="actions">
+          <button id="adminSave" class="primary">Enregistrer</button>
+          <button id="adminStart">Demarrer QR</button>
+          <button id="adminPairing">Connexion telephone</button>
+          <button id="adminStop">Arreter</button>
+        </div>
+        <p id="adminBotState" class="muted">Etat non charge.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Publier une nouveaute</h2>
+        <label>Titre <input id="adminNewsTitle" placeholder="Titre"></label>
+        <label>Message <textarea id="adminNewsBody" placeholder="Details de la nouveaute"></textarea></label>
+        <button id="addNews" class="primary">Publier</button>
+      </section>
+    </section>
+
+    <section class="grid bottom">
+      <section class="panel">
+        <h2>Annonce WhatsApp globale</h2>
+        <label>Titre <input id="broadcastTitle" placeholder="Titre"></label>
+        <label>Message <textarea id="broadcastMessage" placeholder="Message a envoyer"></textarea></label>
+        <button id="sendBroadcast" class="primary">Envoyer aux bots connectes</button>
+        <p class="muted">Chaque bot connecte enverra cette annonce a son propre numero WhatsApp.</p>
+      </section>
+
+      <section class="terminal-wrap admin-terminal">
+        <div class="terminal-head">
+          <div>
+            <h2>Terminal live</h2>
+            <p>Le QR change automatiquement ici quand Baileys le regenere.</p>
+          </div>
+          <div>
+            <select id="adminUserSelect">
+              <option value="admin-owner">Admin</option>
+            </select>
+            <span id="adminUserIdLabel"></span>
+          </div>
+        </div>
+        <pre id="adminTerminal" aria-live="polite"></pre>
+      </section>
+    </section>
+
+    <section class="panel admin-users">
+      <div class="panel-head">
+        <div>
+          <h2>Utilisateurs</h2>
+          <p id="adminSummary">Chargement...</p>
+        </div>
+        <button id="refreshAdmin">Rafraichir</button>
+      </div>
+      <div id="adminUsers" class="table"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Nouveautes publiees</h2>
+      <div id="adminNewsList" class="table"></div>
+    </section>
+  </main>
+
+  <script src="/admin.js"></script>
+</body>
+</html>

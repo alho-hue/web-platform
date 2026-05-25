@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PipChi Bot Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="topbar">
+      <div>
+        <p class="eyebrow">PipChi Bot</p>
+        <h1>Dashboard WhatsApp</h1>
+      </div>
+      <div class="status-pill" id="statusPill">Hors ligne</div>
+    </section>
+
+    <nav class="tabs" aria-label="Navigation dashboard">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="commands">Commandes</button>
+      <button class="tab" data-tab="news">Nouveautes</button>
+      <button class="tab" data-tab="safety">Securite</button>
+    </nav>
+
+    <section class="tab-panel active" id="dashboard">
+      <section class="grid">
+        <aside class="panel compact">
+          <h2>Profil</h2>
+          <label>
+            Nom
+            <input id="nickname" autocomplete="name" placeholder="Ton nom">
+          </label>
+          <label>
+            Numero WhatsApp
+            <input id="phoneNumber" autocomplete="tel" placeholder="+223...">
+          </label>
+          <button id="saveProfile" class="primary">Enregistrer</button>
+
+          <div class="stats">
+            <span>Utilisateurs</span>
+            <strong id="totalUsers">0</strong>
+            <span>Actifs</span>
+            <strong id="activeUsers">0</strong>
+            <span>Etat</span>
+            <strong id="stateText">offline</strong>
+          </div>
+        </aside>
+
+        <section class="panel controls">
+          <div class="panel-head">
+            <div>
+              <h2>Controle</h2>
+              <p id="sessionText">Session non demarree</p>
+            </div>
+            <label class="switch" title="Activer ou desactiver le bot">
+              <input type="checkbox" id="enabledToggle" checked>
+              <span></span>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="startBtn" class="primary">Demarrer</button>
+            <button id="pairingBtn">Connexion telephone</button>
+            <button id="stopBtn">Arreter</button>
+            <button id="restartBtn">Redemarrer</button>
+            <button id="deleteSessionBtn" class="danger">Supprimer session</button>
+            <button id="clearLogs">Effacer terminal</button>
+          </div>
+
+          <div class="notice">
+            <strong>Important</strong>
+            <p>WhatsApp peut limiter ou bloquer un compte si l'activite parait anormale. Evite le spam, desactive le bot quand tu ne l'utilises pas, et garde un usage raisonnable.</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="terminal-wrap">
+        <div class="terminal-head">
+          <div>
+            <h2>Terminal live</h2>
+            <p>Le QR change automatiquement ici quand Baileys le regenere.</p>
+          </div>
+          <span id="userIdLabel"></span>
+        </div>
+        <pre id="terminal" aria-live="polite"></pre>
+      </section>
+
+      <section class="grid bottom">
+        <section class="panel">
+          <h2>Nouveautes recentes</h2>
+          <div id="newsList" class="news"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Automatique</h2>
+          <p id="autoText">Le systeme peut desactiver un bot apres plusieurs jours sans activite.</p>
+          <ul class="plain">
+            <li>Chaque visiteur garde son propre dossier <code>auth</code>.</li>
+            <li>Chaque bot tourne dans son propre processus.</li>
+            <li>Les mises a jour de code demandent un redeploiement serveur, puis un redemarrage des sessions.</li>
+          </ul>
+        </section>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="commands">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Commandes du bot</h2>
+          <p>Commandes detectees automatiquement depuis le fichier du bot.</p>
+          </div>
+          <input id="commandSearch" class="short-input" placeholder="Rechercher une commande">
+        </div>
+        <div id="commandList" class="command-grid"></div>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="news">
+      <section class="grid">
+        <section class="panel">
+          <h2>Nouveautes</h2>
+          <div id="newsPageList" class="news"></div>
+        </section>
+        <section class="panel">
+          <h2>Annonces recues</h2>
+          <div id="broadcastList" class="news"></div>
+        </section>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="safety">
+      <section class="panel">
+        <h2>Conseils de securite</h2>
+        <div class="safety-grid">
+          <article>
+            <strong>Evite le spam</strong>
+            <p>N'envoie pas trop de messages identiques et evite les commandes en boucle.</p>
+          </article>
+          <article>
+            <strong>Pause quand inutile</strong>
+            <p>Utilise le bouton Arreter ou le toggle si tu ne veux pas laisser le bot actif.</p>
+          </article>
+          <article>
+            <strong>Compte principal</strong>
+            <p>Un bot non officiel peut presenter un risque. Le mieux est d'utiliser un numero secondaire.</p>
+          </article>
+          <article>
+            <strong>Session privee</strong>
+            <p>Ne partage jamais ton dossier <code>auth</code>. Il donne acces a ta session WhatsApp.</p>
+          </article>
+        </div>
+      </section>
+    </section>
+
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

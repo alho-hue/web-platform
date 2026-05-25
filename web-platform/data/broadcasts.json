@@ -1,0 +1,50 @@
+[
+  {
+    "id": "06559267-6295-4137-ad48-f27e855473ba",
+    "title": "ajout de la nouvelle cmd",
+    "message": "une nouvelle cmd vient d'être ajouter!\nla comment : !elle",
+    "createdAt": "2026-05-25T13:10:25.181Z",
+    "status": "queued",
+    "deliveredTo": {
+      "780667aa-8aa9-42c6-af4d-ad496985bc8e": "2026-05-25T13:10:42.667Z"
+    },
+    "note": "Chaque bot connecte enverra cette annonce a son proprietaire WhatsApp."
+  },
+  {
+    "id": "aa139dc1-a053-4f73-8ab1-75a20fef1881",
+    "title": "la cmd !help",
+    "message": "!help vient d'être msie a jour!",
+    "createdAt": "2026-05-25T13:02:10.595Z",
+    "status": "queued",
+    "deliveredTo": {
+      "780667aa-8aa9-42c6-af4d-ad496985bc8e": "2026-05-25T13:04:15.826Z"
+    },
+    "note": "Chaque bot connecte enverra cette annonce a son proprietaire WhatsApp."
+  },
+  {
+    "id": "babeecb4-cec2-4e0e-912d-4f12aa60e602",
+    "title": "salut",
+    "message": "test",
+    "createdAt": "2026-05-25T10:31:40.915Z",
+    "status": "queued",
+    "deliveredTo": {
+      "ab4c34ff-f274-4a4a-81ac-7c87dbb6c76e": "2026-05-25T10:41:42.218Z",
+      "admin-owner": "2026-05-25T12:41:36.377Z",
+      "780667aa-8aa9-42c6-af4d-ad496985bc8e": "2026-05-25T13:04:16.274Z"
+    },
+    "note": "Chaque bot connecte enverra cette annonce a son proprietaire WhatsApp."
+  },
+  {
+    "id": "6c95b2f6-1236-46db-ad74-98c105a7df49",
+    "title": "site",
+    "message": "la nouvelle mise à jours du site veint d'être lancer!",
+    "createdAt": "2026-05-25T10:11:53.010Z",
+    "status": "queued",
+    "note": "Interface prete. Envoi WhatsApp reel a brancher quand index.js expose un canal de commande.",
+    "deliveredTo": {
+      "ab4c34ff-f274-4a4a-81ac-7c87dbb6c76e": "2026-05-25T10:41:42.589Z",
+      "admin-owner": "2026-05-25T12:41:37.087Z",
+      "780667aa-8aa9-42c6-af4d-ad496985bc8e": "2026-05-25T13:04:17.606Z"
+    }
+  }
+]

@@ -1,0 +1,72 @@
+=========================================
+🎌 SCÉNARIO QUIZ 1v1 OTAKU 🎌
+=========================================
+
+📋 CONCEPT GÉNÉRAL :
+- Quiz 1v1 entre 2 joueurs d'organisations différentes
+- Questions OTAKU ultra difficiles (niveau expert)
+- Système de points et victoire
+- Organisation automatique des équipes
+
+🎮 DÉROULEMENT TYPE :
+
+1️⃣ LANCEMENT :
+- Un membre fait `!otaku1v1 @joueur2`
+- Le bot vérifie qu'ils sont dans des organisations différentes
+- Création du duel automatique
+
+2️⃣ PRÉPARATION :
+- Bot annonce les 2 organisations en conflit
+- Chaque joueur choisit son organisation (si pas déjà)
+- Système de points : 3 points par bonne réponse
+
+3️⃣ QUIZ ROUND :
+- 10 questions OTAKU ultra difficiles
+- Thèmes : Anime/Manga/Personnages/Openings/Seiyuu
+- Questions de niveau EXPERT (pas les questions basiques)
+
+4️⃣ MÉCANIQUES :
+- 30 secondes par question
+- Premier qui répond gagne le point
+- Si les deux répondent correctement → 1.5 points chacun
+- Si personne ne répond → 0 point
+
+5️⃣ VICTOIRE :
+- Joueur avec le plus de points gagne
+- Organisation gagnante marque des points au classement
+- Célébration épique du vainqueur
+
+🏆 ORGANISATIONS EXEMPLES :
+- Les Gardiens de l'Anime
+- Les Protecteurs du Manga  
+- Les Maîtres des Personnages
+- Les Seigneurs des Openings
+- Les Légendes des Seiyuu
+
+🔥 QUESTIONS ULTRA DIFFICILES EXEMPLES :
+- "Quel seiyuu a doublé plus de 500 personnages ?"
+- "Quel manga a la plus longue publication continue ?"
+- "Dans quel anime le personnage principal meurt 7 fois ?"
+- "Quel opening a été classé #1 au Billboard Japon ?"
+
+📊 SYSTÈME DE CLASSEMENT :
+- Points individuels des joueurs
+- Points par organisation
+- Statistiques de victoires/défaites
+- Titres et récompenses
+
+🎯 COMMANDES PRÉVUES :
+- `!otaku1v1 @joueur` - Lancer un duel
+- `!organisation nom` - Rejoindre une organisation
+- `!classement otaku` - Voir les stats
+- `!mon organisation` - Voir son orga
+
+⚡ SPÉCIALITÉS :
+- Questions jamais répétées (système anti-spam)
+- Adaptation de difficulté selon niveau des joueurs
+- Effets spéciaux dans les annonces
+- Musique d'ambiance pendant les duels
+
+=========================================
+CE SCÉNARIO TE PLAÎT ? 🎯
+=========================================

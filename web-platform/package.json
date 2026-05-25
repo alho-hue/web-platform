@@ -1,0 +1,13 @@
+{
+  "name": "pipchi-web-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard web multi-utilisateurs pour PipChi Bot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}

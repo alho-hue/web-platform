@@ -1,0 +1,15 @@
+{
+  "780667aa-8aa9-42c6-af4d-ad496985bc8e": {
+    "userId": "780667aa-8aa9-42c6-af4d-ad496985bc8e",
+    "phoneNumber": "",
+    "nickname": "Utilisateur",
+    "createdAt": "2026-05-25T14:09:03.072Z",
+    "lastActive": "2026-05-25T14:11:20.767Z",
+    "isActive": false,
+    "botEnabled": true,
+    "pairingRequested": false,
+    "commandCount": 0,
+    "warnings": 0,
+    "lastNoticeAt": null
+  }
+}
