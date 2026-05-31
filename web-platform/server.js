@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
+const { MongoClient } = require('mongodb');
 
 const ROOT = path.resolve(__dirname);
 const PORT = Number(process.env.PORT || 3000);
@@ -17,19 +18,88 @@ const BROADCASTS_FILE = path.join(DATA_DIR, 'broadcasts.json');
 const BOT_ENTRY = path.join(ROOT, 'index.js');
 const INACTIVITY_DAYS = Number(process.env.INACTIVITY_DAYS || 7);
 const ADMIN_KEY = process.env.ADMIN_KEY || 'PipChi-admin';
+const MONGODB_URI = process.env.MONGODB_URI || null;
 
 const sessions = new Map();
 const logBuffers = new Map();
 const logClients = new Map();
+const fileLocks = new Map();
+
+let db = null;
+let mongoClient = null;
 
 let cachedCommands = null;
 let lastBotFileModTime = 0;
 
-function ensureBase() {
+async function connectMongo() {
+  if (!MONGODB_URI || db) return;
+  try {
+    mongoClient = new MongoClient(MONGODB_URI);
+    await mongoClient.connect();
+    db = mongoClient.db('pipchi-bot');
+    console.log('✅ Connecté à MongoDB');
+  } catch (error) {
+    console.error('❌ Erreur connexion MongoDB:', error.message);
+    db = null;
+  }
+}
+
+function readJson(file, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tempFile = file + '.tmp';
+  fs.writeFileSync(tempFile, JSON.stringify(value, null, 2));
+  fs.renameSync(tempFile, file);
+  
+  // Sauvegarder automatiquement vers MongoDB si disponible
+  if (db) {
+    const collectionName = path.basename(file, '.json');
+    db.collection(collectionName).updateOne(
+      { _id: 'data' },
+      { $set: { value } },
+      { upsert: true }
+    ).catch(err => console.error('Erreur sauvegarde MongoDB:', err.message));
+  }
+}
+
+// Fonction pour restaurer depuis MongoDB au démarrage
+async function restoreFromMongo() {
+  if (!db) return;
+  try {
+    const collections = ['users', 'stats', 'news', 'broadcasts'];
+    for (const collectionName of collections) {
+      const collection = db.collection(collectionName);
+      const doc = await collection.findOne({ _id: 'data' });
+      if (doc && doc.value) {
+        const file = path.join(DATA_DIR, `${collectionName}.json`);
+        if (!fs.existsSync(file) || fs.statSync(file).size === 0) {
+          writeJson(file, doc.value);
+          console.log(`✅ Restauré ${collectionName} depuis MongoDB`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Erreur restauration MongoDB:', error.message);
+  }
+}
+
+async function ensureBase() {
+  await connectMongo();
   for (const dir of [PUBLIC_DIR, DATA_DIR, USERS_DIR, RUNTIME_DIR]) fs.mkdirSync(dir, { recursive: true });
   if (!fs.existsSync(USERS_FILE)) writeJson(USERS_FILE, {});
   if (!fs.existsSync(STATS_FILE)) writeJson(STATS_FILE, defaultStats());
   if (!fs.existsSync(BROADCASTS_FILE)) writeJson(BROADCASTS_FILE, []);
+  
+  // Restaurer depuis MongoDB si disponible
+  await restoreFromMongo();
+  
   const users = getUsers();
   for (const user of Object.values(users)) user.isActive = false;
   saveUsers(users);
@@ -50,19 +120,6 @@ function ensureBase() {
 
 function defaultStats() {
   return { totalUsers: 0, activeUsers: 0, totalCommands: 0, lastUpdate: new Date().toISOString() };
-}
-
-function readJson(file, fallback) {
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(value, null, 2));
 }
 
 function ensureDir(dir) {
@@ -592,16 +649,20 @@ async function handleApi(req, res) {
   return sendJson(res, 404, { ok: false, message: 'Route inconnue.' });
 }
 
-ensureBase();
-setInterval(runInactivitySweep, 60 * 60 * 1000).unref();
-runInactivitySweep();
+ensureBase().then(() => {
+  setInterval(runInactivitySweep, 60 * 60 * 1000).unref();
+  runInactivitySweep();
 
-http.createServer((req, res) => {
-  if (req.url.startsWith('/api/')) {
-    handleApi(req, res).catch((error) => sendJson(res, error.statusCode || 500, { ok: false, message: error.message }));
-  } else {
-    serveStatic(req, res);
-  }
-}).listen(PORT, () => {
-  console.log(`Dashboard PipChi pret: http://localhost:${PORT}`);
+  http.createServer((req, res) => {
+    if (req.url.startsWith('/api/')) {
+      handleApi(req, res).catch((error) => sendJson(res, error.statusCode || 500, { ok: false, message: error.message }));
+    } else {
+      serveStatic(req, res);
+    }
+  }).listen(PORT, () => {
+    console.log(`Dashboard PipChi pret: http://localhost:${PORT}`);
+  });
+}).catch((error) => {
+  console.error('Erreur initialisation:', error);
+  process.exit(1);
 });
