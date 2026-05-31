@@ -16,11 +16,12 @@ const NEWS_FILE = path.join(DATA_DIR, 'news.json');
 const BROADCASTS_FILE = path.join(DATA_DIR, 'broadcasts.json');
 const BOT_ENTRY = path.join(ROOT, 'index.js');
 const INACTIVITY_DAYS = Number(process.env.INACTIVITY_DAYS || 7);
-const ADMIN_KEY = process.env.ADMIN_KEY || 'PipChi-admin';
+const ADMIN_KEY = process.env.ADMIN_KEY || crypto.randomBytes(32).toString('hex');
 
 const sessions = new Map();
 const logBuffers = new Map();
 const logClients = new Map();
+const rateLimiter = new Map();
 
 let cachedCommands = null;
 let lastBotFileModTime = 0;
@@ -86,6 +87,21 @@ function sendJson(res, status, payload) {
 function requireAdmin(body, url) {
   const key = body.adminKey || url.searchParams.get('adminKey') || '';
   return key === ADMIN_KEY;
+}
+
+function checkRateLimit(identifier, limit = 60, windowMs = 60000) {
+  const now = Date.now();
+  const record = rateLimiter.get(identifier) || { count: 0, resetTime: now + windowMs };
+  
+  if (now > record.resetTime) {
+    record.count = 0;
+    record.resetTime = now + windowMs;
+  }
+  
+  record.count++;
+  rateLimiter.set(identifier, record);
+  
+  return record.count <= limit;
 }
 
 function userDir(userId) {
@@ -325,6 +341,14 @@ function deleteNewsItem(id) {
   return before !== news.current.length;
 }
 
+function deleteBroadcastItem(id) {
+  const broadcasts = readJson(BROADCASTS_FILE, []);
+  const before = broadcasts.length;
+  const filtered = broadcasts.filter((item) => item.id !== id);
+  writeJson(BROADCASTS_FILE, filtered);
+  return before !== filtered.length;
+}
+
 function queueBroadcast(body) {
   const broadcasts = readJson(BROADCASTS_FILE, []);
   const entry = {
@@ -473,6 +497,20 @@ async function handleApi(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const body = req.method === 'POST' ? await readBody(req) : {};
   const userId = normalizeUserId(body.userId || url.searchParams.get('userId'));
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+
+  // Rate limiting pour les routes sensibles
+  if (url.pathname === '/api/register' || url.pathname === '/api/start' || url.pathname === '/api/start-pairing') {
+    if (!checkRateLimit(clientIp, 10, 60000)) {
+      return sendJson(res, 429, { ok: false, message: 'Trop de requêtes. Réessaie dans 1 minute.' });
+    }
+  }
+
+  if (url.pathname === '/api/admin' || url.pathname === '/api/news' || url.pathname === '/api/news/delete' || url.pathname === '/api/broadcast' || url.pathname === '/api/broadcast/delete') {
+    if (!checkRateLimit(`admin_${clientIp}`, 30, 60000)) {
+      return sendJson(res, 429, { ok: false, message: 'Trop de requêtes admin. Réessaie dans 1 minute.' });
+    }
+  }
 
   if (url.pathname === '/api/register' && req.method === 'POST') {
     return sendJson(res, 200, { ok: true, user: ensureUser(body) });
@@ -502,6 +540,10 @@ async function handleApi(req, res) {
   if (url.pathname === '/api/broadcast' && req.method === 'POST') {
     if (!requireAdmin(body, url)) return sendJson(res, 403, { ok: false, message: 'Cle admin invalide.' });
     return sendJson(res, 200, { ok: true, broadcast: queueBroadcast(body) });
+  }
+  if (url.pathname === '/api/broadcast/delete' && req.method === 'POST') {
+    if (!requireAdmin(body, url)) return sendJson(res, 403, { ok: false, message: 'Cle admin invalide.' });
+    return sendJson(res, 200, { ok: true, deleted: deleteBroadcastItem(body.id) });
   }
   if (!userId) return sendJson(res, 400, { ok: false, message: 'userId manquant.' });
 
@@ -592,4 +634,6 @@ http.createServer((req, res) => {
   }
 }).listen(PORT, () => {
   console.log(`Dashboard PipChi pret: http://localhost:${PORT}`);
+  console.log(`ADMIN_KEY: ${ADMIN_KEY}`);
+  console.log('NOTE: Sauvegarde cette clé pour accéder à la page admin.');
 });

@@ -9582,7 +9582,34 @@ async function downloadAudioSimple(url) {
                     resolve(buffer)
                 } catch (playError) {
                     console.error('❌ Erreur play-dl:', playError)
-                    reject(new Error('Téléchargement non disponible sur ce serveur (YouTube bloque les serveurs cloud)'))
+                    // Fallback: utiliser un service externe de téléchargement
+                    console.log("⚠️ play-dl échoué, tentative avec service externe...")
+                    try {
+                        const axios = require('axios')
+                        // Utiliser l'API de téléchargement externe
+                        const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1]
+                        if (!videoId) {
+                            throw new Error('URL YouTube invalide')
+                        }
+                        
+                        // Utiliser l'API de téléchargement (fallback)
+                        const downloadApi = `https://api.vevioz.com/api/download/mp3/${videoId}`
+                        const response = await axios.get(downloadApi, { timeout: 30000 })
+                        
+                        if (response.data && response.data.download_url) {
+                            const audioResponse = await axios.get(response.data.download_url, { 
+                                responseType: 'arraybuffer',
+                                timeout: 60000 
+                            })
+                            console.log(`✅ Téléchargement terminé avec service externe`)
+                            resolve(Buffer.from(audioResponse.data))
+                        } else {
+                            throw new Error('URL de téléchargement non trouvée')
+                        }
+                    } catch (externalError) {
+                        console.error('❌ Erreur service externe:', externalError)
+                        reject(new Error('Téléchargement non disponible sur ce serveur (YouTube bloque les serveurs cloud). Essaye localement.'))
+                    }
                 }
             }
         } catch (error) {
@@ -9590,6 +9617,106 @@ async function downloadAudioSimple(url) {
             reject(error)
         }
     })
+}
+
+// Générer une image du match avec les logos des équipes
+async function generateMatchImage(homeTeam, awayTeam, score, match, competitionName) {
+    try {
+        const sharp = require('sharp')
+        const axios = require('axios')
+        
+        // Créer une image de base (800x400)
+        const width = 800
+        const height = 400
+        
+        // Créer un fond dégradé
+        const gradient = sharp({
+            create: {
+                width,
+                height,
+                channels: 3,
+                background: { r: 30, g: 30, b: 40 }
+            }
+        })
+        
+        // Télécharger les logos des équipes (fallback sur des placeholders)
+        let homeLogo, awayLogo
+        try {
+            if (homeTeam.crest) {
+                const homeLogoResponse = await axios.get(homeTeam.crest, { responseType: 'arraybuffer', timeout: 5000 })
+                homeLogo = Buffer.from(homeLogoResponse.data)
+            }
+        } catch (e) {
+            console.log('Erreur téléchargement logo home:', e.message)
+        }
+        
+        try {
+            if (awayTeam.crest) {
+                const awayLogoResponse = await axios.get(awayTeam.crest, { responseType: 'arraybuffer', timeout: 5000 })
+                awayLogo = Buffer.from(awayLogoResponse.data)
+            }
+        } catch (e) {
+            console.log('Erreur téléchargement logo away:', e.message)
+        }
+        
+        // Créer l'image de base avec le fond
+        let image = sharp({
+            create: {
+                width,
+                height,
+                channels: 4,
+                background: { r: 20, g: 25, b: 35, alpha: 255 }
+            }
+        })
+        
+        // Ajouter un effet de gradient
+        image = image.modulate({ brightness: 1.1 })
+        
+        // Créer un canvas SVG pour le texte
+        const svgText = `
+            <svg width="${width}" height="${height}">
+                <rect x="0" y="0" width="${width}" height="${height}" fill="rgba(0,0,0,0.3)"/>
+                <text x="${width/2}" y="50" font-family="Arial" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">⚽ MATCH EN COURS</text>
+                <text x="${width/2}" y="80" font-family="Arial" font-size="18" fill="#00d4aa" text-anchor="middle">${competitionName}</text>
+                <text x="${width/2}" y="${height/2}" font-family="Arial" font-size="48" font-weight="bold" fill="#ffffff" text-anchor="middle">${score.fullTime.home} - ${score.fullTime.away}</text>
+                <text x="${width/2}" y="${height/2 + 40}" font-family="Arial" font-size="20" fill="#aaaaaa" text-anchor="middle">${match.status} (${match.minute}')</text>
+                <text x="200" y="${height - 50}" font-family="Arial" font-size="22" font-weight="bold" fill="#ffffff" text-anchor="middle">${homeTeam.name}</text>
+                <text x="${width - 200}" y="${height - 50}" font-family="Arial" font-size="22" font-weight="bold" fill="#ffffff" text-anchor="middle">${awayTeam.name}</text>
+            </svg>
+        `
+        
+        const svgBuffer = Buffer.from(svgText)
+        const textOverlay = sharp(svgBuffer)
+        
+        // Combiner l'image de base avec le texte
+        image = await image.composite([{ input: await textOverlay.toBuffer(), blend: 'over' }])
+        
+        // Ajouter les logos si disponibles
+        if (homeLogo) {
+            const homeLogoResized = await sharp(homeLogo).resize(100, 100).toBuffer()
+            image = await image.composite([{ input: homeLogoResized, left: 150, top: height - 180 }])
+        }
+        
+        if (awayLogo) {
+            const awayLogoResized = await sharp(awayLogo).resize(100, 100).toBuffer()
+            image = await image.composite([{ input: awayLogoResized, left: width - 250, top: height - 180 }])
+        }
+        
+        // Ajouter une bordure
+        image = await image.extend({
+            top: 5,
+            bottom: 5,
+            left: 5,
+            right: 5,
+            background: { r: 0, g: 212, b: 170, alpha: 255 }
+        })
+        
+        return await image.toBuffer()
+    } catch (error) {
+        console.error('Erreur génération image match:', error)
+        // Fallback: retourner null pour utiliser le texte
+        return null
+    }
 }
 
 // Vérifier si une commande existe
@@ -9924,6 +10051,7 @@ async function streamToBuffer(stream) {
                         'X-Auth-Token': '8e74208653ed455b8a2a94043c4ebf96'
                     }
                     const axios = require('axios')
+                    const sharp = require('sharp')
                     const response = await axios.get(apiUrl, { headers })
                     if (response.status !== 200) {
                         throw new Error('Erreur API Football')
@@ -9960,14 +10088,25 @@ async function streamToBuffer(stream) {
                                 key: msg.key
                             }
                         })
-                        const matchMessage = `⚽ *MATCH EN COURS*\n\n` +
-                            `🏟️ ${homeTeam.name} vs ${awayTeam.name}\n` +
-                            `📊 Score: ${score.fullTime.home} - ${score.fullTime.away}\n` +
-                            `⏱️ ${match.status} (${match.minute}')\n` +
-                            `🏆 ${match.competition.name}`
-                        await sock.sendMessage(jid, {
-                            text: matchMessage
-                        }, { quoted: msg })
+                        
+                        // Générer l'image du match
+                        const matchImage = await generateMatchImage(homeTeam, awayTeam, score, match, match.competition.name)
+                        if (matchImage) {
+                            await sock.sendMessage(jid, {
+                                image: matchImage,
+                                caption: `⚽ ${homeTeam.name} vs ${awayTeam.name}\n📊 ${score.fullTime.home} - ${score.fullTime.away} | ${match.status} (${match.minute}')`
+                            }, { quoted: msg })
+                        } else {
+                            // Fallback sur le texte
+                            const matchMessage = `⚽ *MATCH EN COURS*\n\n` +
+                                `🏟️ ${homeTeam.name} vs ${awayTeam.name}\n` +
+                                `📊 Score: ${score.fullTime.home} - ${score.fullTime.away}\n` +
+                                `⏱️ ${match.status} (${match.minute}')\n` +
+                                `🏆 ${match.competition.name}`
+                            await sock.sendMessage(jid, {
+                                text: matchMessage
+                            }, { quoted: msg })
+                        }
                     } else {
                         // Afficher le match le plus populaire en cours
                         if (liveMatches.length === 0) {
@@ -9993,14 +10132,25 @@ async function streamToBuffer(stream) {
                                 key: msg.key
                             }
                         })
-                        const matchMessage = `⚽ *MATCH POPULAIRE EN COURS*\n\n` +
-                            `🏟️ ${homeTeam.name} vs ${awayTeam.name}\n` +
-                            `📊 Score: ${score.fullTime.home} - ${score.fullTime.away}\n` +
-                            `⏱️ ${match.status} (${match.minute}')\n` +
-                            `🏆 ${match.competition.name}`
-                        await sock.sendMessage(jid, {
-                            text: matchMessage
-                        }, { quoted: msg })
+                        
+                        // Générer l'image du match
+                        const matchImage = await generateMatchImage(homeTeam, awayTeam, score, match, match.competition.name)
+                        if (matchImage) {
+                            await sock.sendMessage(jid, {
+                                image: matchImage,
+                                caption: `⚽ ${homeTeam.name} vs ${awayTeam.name}\n📊 ${score.fullTime.home} - ${score.fullTime.away} | ${match.status} (${match.minute}')`
+                            }, { quoted: msg })
+                        } else {
+                            // Fallback sur le texte
+                            const matchMessage = `⚽ *MATCH EN COURS*\n\n` +
+                                `🏟️ ${homeTeam.name} vs ${awayTeam.name}\n` +
+                                `📊 Score: ${score.fullTime.home} - ${score.fullTime.away}\n` +
+                                `⏱️ ${match.status} (${match.minute}')\n` +
+                                `🏆 ${match.competition.name}`
+                            await sock.sendMessage(jid, {
+                                text: matchMessage
+                            }, { quoted: msg })
+                        }
                     }
                 } catch (error) {
                     console.error('❌ Erreur football:', error)

@@ -3,8 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Console Admin PipChi - Gérez votre bot WhatsApp">
   <title>PipChi Admin</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <main class="shell">
@@ -12,13 +16,17 @@
       <div>
         <p class="eyebrow">PipChi Admin</p>
         <h1>Console admin</h1>
+        <p class="subtitle">Gérez votre bot WhatsApp en toute simplicité</p>
       </div>
       <a class="link-button" href="/">Page utilisateur</a>
     </section>
 
     <section class="grid">
       <section class="panel compact">
-        <h2>Mon bot admin</h2>
+        <div class="panel-head">
+          <h2>Mon bot admin</h2>
+          <p class="muted">Configurez votre bot administrateur</p>
+        </div>
         <label>Nom <input id="adminName" placeholder="Admin"></label>
         <label>Numero WhatsApp <input id="adminPhone" placeholder="+223..."></label>
         <div class="actions">
@@ -27,11 +35,17 @@
           <button id="adminPairing">Connexion telephone</button>
           <button id="adminStop">Arreter</button>
         </div>
-        <p id="adminBotState" class="muted">Etat non charge.</p>
+        <div class="status-indicator">
+          <span class="status-label">Etat:</span>
+          <span id="adminBotState" class="muted">Etat non charge.</span>
+        </div>
       </section>
 
       <section class="panel">
-        <h2>Publier une nouveaute</h2>
+        <div class="panel-head">
+          <h2>Publier une nouveaute</h2>
+          <p class="muted">Annoncez les nouvelles fonctionnalités</p>
+        </div>
         <label>Titre <input id="adminNewsTitle" placeholder="Titre"></label>
         <label>Message <textarea id="adminNewsBody" placeholder="Details de la nouveaute"></textarea></label>
         <button id="addNews" class="primary">Publier</button>
@@ -40,7 +54,10 @@
 
     <section class="grid bottom">
       <section class="panel">
-        <h2>Annonce WhatsApp globale</h2>
+        <div class="panel-head">
+          <h2>Annonce WhatsApp globale</h2>
+          <p class="muted">Envoyez un message à tous les bots connectés</p>
+        </div>
         <label>Titre <input id="broadcastTitle" placeholder="Titre"></label>
         <label>Message <textarea id="broadcastMessage" placeholder="Message a envoyer"></textarea></label>
         <button id="sendBroadcast" class="primary">Envoyer aux bots connectes</button>
@@ -51,9 +68,9 @@
         <div class="terminal-head">
           <div>
             <h2>Terminal live</h2>
-            <p>Le QR change automatiquement ici quand Baileys le regenere.</p>
+            <p class="muted">Le QR change automatiquement ici quand Baileys le regenere.</p>
           </div>
-          <div>
+          <div class="terminal-controls">
             <select id="adminUserSelect">
               <option value="admin-owner">Admin</option>
             </select>
@@ -68,16 +85,27 @@
       <div class="panel-head">
         <div>
           <h2>Utilisateurs</h2>
-          <p id="adminSummary">Chargement...</p>
+          <p id="adminSummary" class="muted">Chargement...</p>
         </div>
-        <button id="refreshAdmin">Rafraichir</button>
+        <button id="refreshAdmin" class="primary">Rafraichir</button>
       </div>
       <div id="adminUsers" class="table"></div>
     </section>
 
     <section class="panel">
-      <h2>Nouveautes publiees</h2>
+      <div class="panel-head">
+        <h2>Nouveautes publiees</h2>
+        <p class="muted">Historique des annonces</p>
+      </div>
       <div id="adminNewsList" class="table"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Annonces recues</h2>
+        <p class="muted">Historique des annonces globales envoyees</p>
+      </div>
+      <div id="adminBroadcastList" class="table"></div>
     </section>
   </main>
 

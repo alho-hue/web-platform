@@ -31,6 +31,18 @@ function stateLabel(state, running) {
   return labels[state] || (running ? 'Actif' : 'Hors ligne');
 }
 
+// Amélioration: Ajouter une animation de chargement
+function showLoading(element, show = true) {
+  if (show) {
+    element.disabled = true;
+    element.dataset.originalText = element.textContent;
+    element.textContent = 'Chargement...';
+  } else {
+    element.disabled = false;
+    element.textContent = element.dataset.originalText || element.textContent;
+  }
+}
+
 async function saveAdmin(extra = {}) {
   const data = await api('/api/register', {
     userId: ADMIN_USER_ID,
@@ -109,6 +121,25 @@ async function loadAdmin() {
     </article>
   `).join('') || '<p class="muted">Aucune nouveaute publiee.</p>';
   
+  // Afficher les annonces reçues (broadcasts)
+  document.querySelector('#adminBroadcastList').innerHTML = (data.broadcasts || []).map((item) => `
+    <article class="table-row news-item">
+      <div class="news-content">
+        <strong>${escapeHtml(item.title || 'Annonce')}</strong>
+        <p>${escapeHtml(item.message || '')}</p>
+        <p class="muted">ID: ${escapeHtml(item.id || '')}</p>
+      </div>
+      <div class="news-meta">
+        <p class="muted">${item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}</p>
+      </div>
+      <div class="row-actions">
+        <button class="danger delete-broadcast-btn" data-broadcast-id="${escapeHtml(item.id || '')}" data-broadcast-title="${escapeHtml(item.title || 'cette annonce')}">
+          Supprimer
+        </button>
+      </div>
+    </article>
+  `).join('') || '<p class="muted">Aucune annonce recue.</p>';
+  
   // Remplir le sélecteur d'utilisateur
   const userSelect = document.querySelector('#adminUserSelect');
   userSelect.innerHTML = '<option value="admin-owner">Admin</option>' + 
@@ -119,11 +150,16 @@ async function adminAction(userId, action) {
   const data = await api('/api/admin/user-action', { adminKey: ADMIN_KEY, userId, action });
   appendAdmin(data.message || (data.ok ? 'Action admin executee.' : 'Action admin echouee.'));
   await loadAdmin();
+  return data.ok;
 }
 
 async function addNews() {
   const title = document.querySelector('#adminNewsTitle').value.trim();
   const body = document.querySelector('#adminNewsBody').value.trim();
+  if (!title || !body) {
+    appendAdmin('Veuillez remplir le titre et le message.');
+    return;
+  }
   const data = await api('/api/news', { adminKey: ADMIN_KEY, title, body });
   appendAdmin(data.ok ? 'Nouveaute publiee.' : data.message);
   if (data.ok) {
@@ -131,33 +167,67 @@ async function addNews() {
     document.querySelector('#adminNewsBody').value = '';
     await loadAdmin();
   }
+  return data.ok;
 }
 
 async function sendBroadcast() {
   const title = document.querySelector('#broadcastTitle').value.trim();
   const message = document.querySelector('#broadcastMessage').value.trim();
+  if (!title || !message) {
+    appendAdmin('Veuillez remplir le titre et le message.');
+    return;
+  }
   const data = await api('/api/broadcast', { adminKey: ADMIN_KEY, title, message });
   appendAdmin(data.ok ? 'Annonce enregistree, les bots connectes vont l envoyer.' : data.message);
   if (data.ok) {
     document.querySelector('#broadcastTitle').value = '';
     document.querySelector('#broadcastMessage').value = '';
   }
+  return data.ok;
 }
 
-async function deleteNews(id, title) {
-  if (!confirm(`Supprimer la nouveauté "${title}" ? Cette action est irréversible.`)) return;
-  const data = await api('/api/news/delete', { adminKey: ADMIN_KEY, id });
-  appendAdmin(data.ok ? `Nouveauté "${title}" supprimée avec succès.` : data.message);
+async function deleteBroadcast(id, title) {
+  if (!confirm(`Supprimer l'annonce "${title}" ? Cette action est irréversible.`)) return;
+  const data = await api('/api/broadcast/delete', { adminKey: ADMIN_KEY, id });
+  appendAdmin(data.ok ? `Annonce "${title}" supprimée avec succès.` : data.message);
   if (data.ok) await loadAdmin();
 }
 
-document.querySelector('#adminSave').addEventListener('click', () => saveAdmin());
-document.querySelector('#adminStart').addEventListener('click', async () => { if (await saveAdmin()) await adminCommand('/api/start'); });
-document.querySelector('#adminPairing').addEventListener('click', async () => { if (await saveAdmin({ pairingRequested: true })) await adminCommand('/api/start-pairing'); });
-document.querySelector('#adminStop').addEventListener('click', () => adminCommand('/api/stop'));
-document.querySelector('#refreshAdmin').addEventListener('click', loadAdmin);
-document.querySelector('#addNews').addEventListener('click', addNews);
-document.querySelector('#sendBroadcast').addEventListener('click', sendBroadcast);
+document.querySelector('#adminSave').addEventListener('click', async () => {
+  showLoading(document.querySelector('#adminSave'));
+  await saveAdmin();
+  showLoading(document.querySelector('#adminSave'), false);
+});
+document.querySelector('#adminStart').addEventListener('click', async () => {
+  showLoading(document.querySelector('#adminStart'));
+  if (await saveAdmin()) await adminCommand('/api/start');
+  showLoading(document.querySelector('#adminStart'), false);
+});
+document.querySelector('#adminPairing').addEventListener('click', async () => {
+  showLoading(document.querySelector('#adminPairing'));
+  if (await saveAdmin({ pairingRequested: true })) await adminCommand('/api/start-pairing');
+  showLoading(document.querySelector('#adminPairing'), false);
+});
+document.querySelector('#adminStop').addEventListener('click', async () => {
+  showLoading(document.querySelector('#adminStop'));
+  await adminCommand('/api/stop');
+  showLoading(document.querySelector('#adminStop'), false);
+});
+document.querySelector('#refreshAdmin').addEventListener('click', async () => {
+  showLoading(document.querySelector('#refreshAdmin'));
+  await loadAdmin();
+  showLoading(document.querySelector('#refreshAdmin'), false);
+});
+document.querySelector('#addNews').addEventListener('click', async () => {
+  showLoading(document.querySelector('#addNews'));
+  await addNews();
+  showLoading(document.querySelector('#addNews'), false);
+});
+document.querySelector('#sendBroadcast').addEventListener('click', async () => {
+  showLoading(document.querySelector('#sendBroadcast'));
+  await sendBroadcast();
+  showLoading(document.querySelector('#sendBroadcast'), false);
+});
 document.querySelector('#adminUserSelect').addEventListener('change', (event) => {
   currentAdminUserId = event.target.value;
   adminTerminal.textContent = '';
@@ -172,6 +242,12 @@ document.querySelector('#adminNewsList').addEventListener('click', (event) => {
   const btn = event.target.closest('.delete-news-btn');
   if (btn) {
     deleteNews(btn.dataset.newsId, btn.dataset.newsTitle);
+  }
+});
+document.querySelector('#adminBroadcastList').addEventListener('click', (event) => {
+  const btn = event.target.closest('.delete-broadcast-btn');
+  if (btn) {
+    deleteBroadcast(btn.dataset.broadcastId, btn.dataset.broadcastTitle);
   }
 });
 

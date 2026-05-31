@@ -66,6 +66,18 @@ async function register(extra = {}) {
   return true;
 }
 
+// Amélioration: Ajouter une animation de chargement
+function showLoading(element, show = true) {
+  if (show) {
+    element.disabled = true;
+    element.dataset.originalText = element.textContent;
+    element.textContent = 'Chargement...';
+  } else {
+    element.disabled = false;
+    element.textContent = element.dataset.originalText || element.textContent;
+  }
+}
+
 function renderNews(target, news) {
   const items = news?.current?.length ? news.current : [{ title: 'Aucune nouveaute', body: 'Les annonces apparaitront ici.' }];
   target.innerHTML = items.map((item) => `
@@ -163,6 +175,7 @@ async function command(path) {
   const data = await api(path, { userId });
   appendTerminal(data.message || (data.ok ? 'Commande envoyee.' : 'Erreur.'));
   if (data.ok) await refresh();
+  return data.ok;
 }
 
 async function startPairing() {
@@ -208,14 +221,137 @@ async function renderCommands(filter = '') {
       <h3 class="category-title">${escapeHtml(category)}</h3>
       <div class="command-items">
         ${grouped[category].map((item) => `
-          <article class="command-card">
+          <button class="command-card" data-command="${escapeHtml(item.command)}" data-desc="${escapeHtml(item.text)}">
             <code class="command-code">${escapeHtml(item.command)}</code>
             <p class="command-desc">${escapeHtml(item.text)}</p>
-          </article>
+            <span class="command-hint">Clique pour voir les details</span>
+          </button>
         `).join('')}
       </div>
     </div>
   `).join('');
+  
+  // Ajouter les event listeners pour les popups
+  document.querySelectorAll('.command-card').forEach((card) => {
+    card.addEventListener('click', () => showCommandPopup(card.dataset.command, card.dataset.desc));
+  });
+}
+
+// Mapping des commandes avec leurs vraies descriptions
+const commandDescriptions = {
+  '!admins': 'Affiche la liste des administrateurs du groupe',
+  '!ferme': 'Ferme le groupe (seuls les admins peuvent envoyer des messages)',
+  '!ouvre': 'Ouvre le groupe (tout le monde peut envoyer des messages)',
+  '!warn': 'Avertir un utilisateur du groupe',
+  '!unwarn': 'Retirer les avertissements d\'un utilisateur',
+  '!kick': 'Expulser un utilisateur du groupe',
+  '!promote': 'Promouvoir un utilisateur en admin',
+  '!demote': 'Rétrograder un admin en membre',
+  '!add': 'Ajouter un membre au groupe',
+  '!link': 'Obtenir le lien d\'invitation du groupe',
+  '!desc': 'Changer la description du groupe',
+  '!subject': 'Changer le nom du groupe',
+  '!setup': 'Configurer le bot comme admin du groupe',
+  '!tagall': 'Mentionner tous les membres du groupe',
+  '!resetscore': 'Réinitialiser les scores du groupe',
+  '!welcome on': 'Activer le message de bienvenue',
+  '!welcome off': 'Désactiver le message de bienvenue',
+  '!antilink on': 'Activer l\'anti-lien (supprime les liens)',
+  '!antilink off': 'Désactiver l\'anti-lien',
+  '!jeu': 'Lancer un jeu aléatoire',
+  '!culture': 'Quiz de culture générale (12 points)',
+  '!country': 'Quiz des pays (8 points avec indices)',
+  '!capitale': 'Quiz des capitales (8 points avec indices)',
+  '!vraioufaux': 'Quiz vrai/faux avec explications',
+  '!devine': 'Devine le mot (8 points avec indices)',
+  '!monument': 'Quiz des monuments (9 points avec indices)',
+  '!drapeau': 'Quiz des drapeaux (9 points avec indices)',
+  '!science': 'Quiz de science (avec indices)',
+  '!sport': 'Quiz de sport (avec indices)',
+  '!cinema': 'Quiz de cinéma (avec indices)',
+  '!histoire': 'Quiz d\'histoire (avec indices)',
+  '!math': 'Quiz de mathématiques (5 points)',
+  '!logique': 'Quiz de logique (avec indices)',
+  '!indice': 'Demander un indice pour le quiz en cours',
+  '!otaku': 'Jeu otaku aléatoire',
+  '!anime': 'Quiz anime (8 points)',
+  '!manga': 'Quiz manga (8 points)',
+  '!personnage': 'Quiz personnages (7 points)',
+  '!opening': 'Quiz openings (6 points)',
+  '!seiyuu': 'Quiz seiyuu (9 points)',
+  '!battle': 'Battle 1v1 OTAKU contre un joueur',
+  '!organisation': 'Créer ou rejoindre une organisation',
+  '!mon organisation': 'Voir votre organisation',
+  '!debug org': 'Déboguer les organisations',
+  '!couple': 'Former un couple aléatoire',
+  '!crush': 'Révéler votre crush',
+  '!mariage': 'Simuler un mariage',
+  '!ship': 'Ship deux personnes',
+  '!love': 'Calculer votre compatibilité amoureuse',
+  '!roll': 'Lancer un dé',
+  '!8ball': 'Boule magique (répond à vos questions)',
+  '!aouv': 'Action ou Vérité (200+ questions)',
+  '!debat': 'Lancer un débat',
+  '!lastcry': 'Jeu du dernier survivant',
+  '!loup create': 'Créer une partie Loup-Garou (4-20 joueurs)',
+  '!loup join': 'Rejoindre une partie Loup-Garou',
+  '!loup start': 'Démarrer une partie Loup-Garou',
+  '!loup status': 'Voir l\'état de la partie Loup-Garou',
+  '!vote': 'Voter pour éliminer un joueur (Loup-Garou)',
+  '!play': 'Télécharger et envoyer de la musique',
+  '!qr': 'Générer un QR code',
+  '!profil': 'Obtenir la photo de profil d\'un utilisateur',
+  '!foot': 'Obtenir les résultats de football',
+  '!ghost': 'Extraire un média fantôme',
+  '!v': 'Télécharger le contenu d\'un message',
+  '!sticker': 'Convertir une image en sticker',
+  '!stickers': 'Voir vos packs de stickers créés',
+  '!msgcount': 'Compter les messages du groupe',
+  '!top': 'Voir le classement des membres',
+  '!groupstats': 'Voir les statistiques du groupe',
+  '!restore': 'Restaurer les données du groupe',
+  '!scores': 'Voir le classement des joueurs',
+  '!info': 'Informations sur le bot',
+  '!help': 'Afficher la liste des commandes',
+  '!myid': 'Afficher votre ID WhatsApp'
+};
+
+function getCommandDescription(command) {
+  return commandDescriptions[command] || 'Commande detectee dans index.js.';
+}
+
+function showCommandPopup(command, description) {
+  const realDescription = getCommandDescription(command);
+  // Créer la popup
+  const popup = document.createElement('div');
+  popup.className = 'command-popup-overlay';
+  popup.innerHTML = `
+    <div class="command-popup">
+      <div class="popup-header">
+        <h3>${escapeHtml(command)}</h3>
+        <button class="popup-close">&times;</button>
+      </div>
+      <div class="popup-content">
+        <p><strong>Description:</strong></p>
+        <p>${escapeHtml(realDescription)}</p>
+        <p class="popup-hint">Utilise cette commande dans WhatsApp en envoyant: <code>${escapeHtml(command)}</code></p>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  // Fermer la popup
+  const closeBtn = popup.querySelector('.popup-close');
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(popup);
+  });
+  
+  popup.addEventListener('click', (e) => {
+    if (e.target === popup) {
+      document.body.removeChild(popup);
+    }
+  });
 }
 
 document.querySelectorAll('.tab').forEach((button) => {
@@ -227,11 +363,31 @@ document.querySelectorAll('.tab').forEach((button) => {
   });
 });
 
-document.querySelector('#saveProfile').addEventListener('click', () => register());
-document.querySelector('#startBtn').addEventListener('click', () => command('/api/start'));
-document.querySelector('#pairingBtn').addEventListener('click', startPairing);
-document.querySelector('#stopBtn').addEventListener('click', () => command('/api/stop'));
-document.querySelector('#restartBtn').addEventListener('click', () => command('/api/restart'));
+document.querySelector('#saveProfile').addEventListener('click', async () => {
+  showLoading(document.querySelector('#saveProfile'));
+  await register();
+  showLoading(document.querySelector('#saveProfile'), false);
+});
+document.querySelector('#startBtn').addEventListener('click', async () => {
+  showLoading(document.querySelector('#startBtn'));
+  await command('/api/start');
+  showLoading(document.querySelector('#startBtn'), false);
+});
+document.querySelector('#pairingBtn').addEventListener('click', async () => {
+  showLoading(document.querySelector('#pairingBtn'));
+  await startPairing();
+  showLoading(document.querySelector('#pairingBtn'), false);
+});
+document.querySelector('#stopBtn').addEventListener('click', async () => {
+  showLoading(document.querySelector('#stopBtn'));
+  await command('/api/stop');
+  showLoading(document.querySelector('#stopBtn'), false);
+});
+document.querySelector('#restartBtn').addEventListener('click', async () => {
+  showLoading(document.querySelector('#restartBtn'));
+  await command('/api/restart');
+  showLoading(document.querySelector('#restartBtn'), false);
+});
 document.querySelector('#deleteSessionBtn').addEventListener('click', deleteSession);
 document.querySelector('#clearLogs').addEventListener('click', () => {
   terminal.textContent = '';

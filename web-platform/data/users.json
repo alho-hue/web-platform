@@ -1,10 +1,10 @@
 {
-  "780667aa-8aa9-42c6-af4d-ad496985bc8e": {
-    "userId": "780667aa-8aa9-42c6-af4d-ad496985bc8e",
+  "admin-owner": {
+    "userId": "admin-owner",
     "phoneNumber": "",
-    "nickname": "Utilisateur",
-    "createdAt": "2026-05-25T14:09:03.072Z",
-    "lastActive": "2026-05-25T15:52:36.206Z",
+    "nickname": "Admin",
+    "createdAt": "2026-05-31T22:29:40.060Z",
+    "lastActive": "2026-05-31T22:59:49.840Z",
     "isActive": false,
     "botEnabled": true,
     "pairingRequested": false,
@@ -12,12 +12,25 @@
     "warnings": 0,
     "lastNoticeAt": null
   },
-  "admin-owner": {
-    "userId": "admin-owner",
+  "780667aa-8aa9-42c6-af4d-ad496985bc8e": {
+    "userId": "780667aa-8aa9-42c6-af4d-ad496985bc8e",
     "phoneNumber": "",
-    "nickname": "Admin",
-    "createdAt": "2026-05-25T14:17:24.673Z",
-    "lastActive": "2026-05-25T14:24:00.611Z",
+    "nickname": "Utilisateur",
+    "createdAt": "2026-05-31T22:38:10.958Z",
+    "lastActive": "2026-05-31T23:00:15.786Z",
+    "isActive": false,
+    "botEnabled": true,
+    "pairingRequested": false,
+    "commandCount": 0,
+    "warnings": 0,
+    "lastNoticeAt": null
+  },
+  "9fc0609c-1835-4fca-a1b2-9e4b1635373f": {
+    "userId": "9fc0609c-1835-4fca-a1b2-9e4b1635373f",
+    "phoneNumber": "",
+    "nickname": "Utilisateur",
+    "createdAt": "2026-05-31T22:52:28.613Z",
+    "lastActive": "2026-05-31T22:52:58.881Z",
     "isActive": false,
     "botEnabled": true,
     "pairingRequested": false,
