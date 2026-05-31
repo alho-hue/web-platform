@@ -9555,47 +9555,22 @@ async function downloadAudioSimple(url) {
                 fs.mkdirSync(downloadDir, { recursive: true })
             }
             
-            // Vérifier si yt-dlp est disponible (chemin local pour Render)
-            const ytDlpPath = path.join(__dirname, 'bin', 'yt-dlp')
-            const ytDlpAvailable = fs.existsSync(ytDlpPath)
-            
-            if (ytDlpAvailable) {
-                // Utiliser yt-dlp pour télécharger l'audio avec ffmpeg
-                const ytDlp = spawn(ytDlpPath, [
-                    url,
-                    "-f", "bestaudio",
-                    "-x", "--audio-format", "mp3",
-                    "--audio-quality", "128K",
-                    "--ffmpeg-location", ffmpeg,
-                    "-o", downloadPath
-                ])
-                ytDlp.stderr.on("data", (data) => {
-                    console.log("yt-dlp:", data.toString())
-                })
-                ytDlp.on("close", (code) => {
-                    if (code === 0) {
-                        console.log(`✅ Téléchargement terminé: ${downloadPath}`)
-                        // Lire le fichier et le convertir en buffer
-                        fs.readFile(downloadPath, (err, data) => {
-                            if (err) {
-                                reject(err)
-                            } else {
-                                // Supprimer le fichier temporaire
-                                fs.unlink(downloadPath, () => {})
-                                resolve(data)
-                            }
-                        })
-                    } else {
-                        reject(new Error(`yt-dlp process exited with code ${code}`))
-                    }
-                })
-                ytDlp.on('error', (error) => {
-                    console.error('❌ Erreur yt-dlp:', error)
-                    reject(error)
-                })
-            } else {
-                // Utiliser play-dl comme alternative
-                console.log("⚠️ yt-dlp non disponible, tentative avec play-dl...")
+            // Utiliser ytdl-core pour télécharger l'audio
+            console.log("🎵 Utilisation de ytdl-core pour le téléchargement...")
+            try {
+                const ytdl = require('ytdl-core')
+                const stream = ytdl(url, { quality: 'highestaudio', filter: 'audioonly' })
+                const chunks = []
+                for await (const chunk of stream) {
+                    chunks.push(chunk)
+                }
+                const buffer = Buffer.concat(chunks)
+                console.log(`✅ Téléchargement terminé avec ytdl-core`)
+                resolve(buffer)
+            } catch (ytdlError) {
+                console.error('❌ Erreur ytdl-core:', ytdlError)
+                // Fallback: essayer play-dl
+                console.log("⚠️ ytdl-core échoué, tentative avec play-dl...")
                 try {
                     const { stream, info } = await play.stream(url)
                     const chunks = []
@@ -9607,7 +9582,7 @@ async function downloadAudioSimple(url) {
                     resolve(buffer)
                 } catch (playError) {
                     console.error('❌ Erreur play-dl:', playError)
-                    reject(new Error('Téléchargement non disponible sur ce serveur (yt-dlp et play-dl non disponibles)'))
+                    reject(new Error('Téléchargement non disponible sur ce serveur'))
                 }
             }
         } catch (error) {
