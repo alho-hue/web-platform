@@ -3,9 +3,7 @@ services:
     name: pipchi-web-platform
     runtime: node
     plan: free
-    env: node
-    rootDir: web-platform
-    buildCommand: npm install --legacy-peer-deps && chmod +x build.sh && ./build.sh
+    buildCommand: npm install --legacy-peer-deps && cd web-platform && chmod +x build.sh && ./build.sh
     startCommand: node server.js
     envVars:
       - key: NODE_VERSION
