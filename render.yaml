@@ -1,12 +1,16 @@
 services:
   - type: web
-    name: pipchi-bot
+    name: pipchi-web-platform
     runtime: node
     plan: free
-    buildCommand: npm install
-    startCommand: node index.js
+    buildCommand: cd web-platform && npm install --legacy-peer-deps && chmod +x build.sh && ./build.sh
+    startCommand: cd web-platform && node server.js
     envVars:
       - key: NODE_VERSION
         value: 18
       - key: PORT
-        value: 8080
+        value: 3000
+      - key: ADMIN_KEY
+        value: PipChi-admin
+      - key: INACTIVITY_DAYS
+        value: 7
