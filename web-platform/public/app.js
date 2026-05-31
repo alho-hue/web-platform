@@ -14,11 +14,16 @@ const broadcastList = document.querySelector('#broadcastList');
 const autoText = document.querySelector('#autoText');
 
 let userId = localStorage.getItem('PipChi_user_id') || '';
+if (!userId) {
+  userId = crypto.randomUUID();
+  localStorage.setItem('PipChi_user_id', userId);
+}
 let events;
 
 function appendTerminal(line) {
   terminal.textContent += line.endsWith('\n') ? line : `${line}\n`;
   terminal.scrollTop = terminal.scrollHeight;
+  saveLogs();
 }
 
 async function api(path, payload = null) {
@@ -111,6 +116,16 @@ async function refresh() {
   renderNews(newsList, news);
   renderNews(newsPageList, news);
   renderBroadcasts(broadcasts);
+  
+  // Sauvegarder l'état dans localStorage
+  localStorage.setItem('PipChi_bot_state', JSON.stringify({
+    running,
+    state,
+    startedAt,
+    botEnabled: user.botEnabled !== false,
+    nickname: user.nickname || '',
+    phoneNumber: user.phoneNumber || ''
+  }));
 }
 
 function connectLogs() {
@@ -118,6 +133,30 @@ function connectLogs() {
   if (events) events.close();
   events = new EventSource(`/api/logs?userId=${encodeURIComponent(userId)}`);
   events.onmessage = (event) => appendTerminal(JSON.parse(event.data));
+  
+  // Restaurer les logs sauvegardés
+  const savedLogs = localStorage.getItem('PipChi_terminal_logs');
+  if (savedLogs) {
+    terminal.textContent = savedLogs;
+  }
+}
+
+function saveLogs() {
+  localStorage.setItem('PipChi_terminal_logs', terminal.textContent);
+}
+
+function restoreState() {
+  const savedState = localStorage.getItem('PipChi_bot_state');
+  if (savedState) {
+    try {
+      const state = JSON.parse(savedState);
+      if (state.nickname) nickname.value = state.nickname;
+      if (state.phoneNumber) phoneNumber.value = state.phoneNumber;
+      if (state.botEnabled !== undefined) enabledToggle.checked = state.botEnabled;
+    } catch (e) {
+      console.error('Erreur restauration état:', e);
+    }
+  }
 }
 
 async function command(path) {
@@ -211,5 +250,6 @@ enabledToggle.addEventListener('change', async () => {
 });
 
 renderCommands();
+restoreState();
 register();
 setInterval(refresh, 5000);

@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname);
 const PORT = Number(process.env.PORT || 3000);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
@@ -21,6 +21,9 @@ const ADMIN_KEY = process.env.ADMIN_KEY || 'PipChi-admin';
 const sessions = new Map();
 const logBuffers = new Map();
 const logClients = new Map();
+
+let cachedCommands = null;
+let lastBotFileModTime = 0;
 
 function ensureBase() {
   for (const dir of [PUBLIC_DIR, DATA_DIR, USERS_DIR, RUNTIME_DIR]) fs.mkdirSync(dir, { recursive: true });
@@ -342,6 +345,14 @@ function queueBroadcast(body) {
 }
 
 function extractCommandsFromBot() {
+  const currentModTime = fs.statSync(BOT_ENTRY).mtimeMs;
+  
+  // Si le fichier n'a pas changé, retourner le cache
+  if (cachedCommands && lastBotFileModTime === currentModTime) {
+    return cachedCommands;
+  }
+  
+  // Extraire les commandes depuis le fichier
   const source = fs.readFileSync(BOT_ENTRY, 'utf8');
   const commands = new Map();
   const patterns = [
@@ -361,7 +372,12 @@ function extractCommandsFromBot() {
       });
     }
   }
-  return Array.from(commands.values()).sort((a, b) => a.command.localeCompare(b.command));
+  
+  // Mettre à jour le cache
+  cachedCommands = Array.from(commands.values()).sort((a, b) => a.command.localeCompare(b.command));
+  lastBotFileModTime = currentModTime;
+  
+  return cachedCommands;
 }
 
 function guessCommandCategory(command) {

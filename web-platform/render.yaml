@@ -3,7 +3,7 @@ services:
     name: pipchi-web-platform
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && chmod +x build.sh && ./build.sh
     startCommand: node server.js
     envVars:
       - key: NODE_VERSION
