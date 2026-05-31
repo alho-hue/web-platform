@@ -9555,22 +9555,22 @@ async function downloadAudioSimple(url) {
                 fs.mkdirSync(downloadDir, { recursive: true })
             }
             
-            // Utiliser ytdl-core pour télécharger l'audio
-            console.log("🎵 Utilisation de ytdl-core pour le téléchargement...")
+            // Utiliser @distube/ytdl-core pour télécharger l'audio
+            console.log("🎵 Utilisation de @distube/ytdl-core pour le téléchargement...")
             try {
-                const ytdl = require('ytdl-core')
+                const ytdl = require('@distube/ytdl-core')
                 const stream = ytdl(url, { quality: 'highestaudio', filter: 'audioonly' })
                 const chunks = []
                 for await (const chunk of stream) {
                     chunks.push(chunk)
                 }
                 const buffer = Buffer.concat(chunks)
-                console.log(`✅ Téléchargement terminé avec ytdl-core`)
+                console.log(`✅ Téléchargement terminé avec @distube/ytdl-core`)
                 resolve(buffer)
             } catch (ytdlError) {
-                console.error('❌ Erreur ytdl-core:', ytdlError)
+                console.error('❌ Erreur @distube/ytdl-core:', ytdlError)
                 // Fallback: essayer play-dl
-                console.log("⚠️ ytdl-core échoué, tentative avec play-dl...")
+                console.log("⚠️ @distube/ytdl-core échoué, tentative avec play-dl...")
                 try {
                     const { stream, info } = await play.stream(url)
                     const chunks = []
@@ -9582,7 +9582,7 @@ async function downloadAudioSimple(url) {
                     resolve(buffer)
                 } catch (playError) {
                     console.error('❌ Erreur play-dl:', playError)
-                    reject(new Error('Téléchargement non disponible sur ce serveur'))
+                    reject(new Error('Téléchargement non disponible sur ce serveur (YouTube bloque les serveurs cloud)'))
                 }
             }
         } catch (error) {
